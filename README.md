@@ -9,4 +9,3 @@ Al termine di una conversazione i client ritorneranno disponibili fino a che non
 Si precisa che la specifica richiede la realizzazione del software sia per l'applicazione client che per l'applicazione server. 
 
 Per progetti misti Unix/Windows è a scelta quale delle due applicazioni sviluppare per uno dei due sistemi.
-Prova prova.
