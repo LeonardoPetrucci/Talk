@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util.h"
+#include "server.h"
 
 size_t ReadSocket(int ds, char buf[], int n){
 
@@ -49,8 +49,8 @@ void close_and_cleanup(int socket){
 void cmdManagement(int socket){
     while (1) {
         
-        char buf[MAXMESSAGESIZE];
-        int ret = ReadSocket(socket, buf, MAXMESSAGESIZE);
+        char buf[MAX_MESSAGE_LENGTH];
+        int ret = ReadSocket(socket, buf, MAX_MESSAGE_LENGTH);
         ERROR_HELPER(ret, "Error in reading from socket");
 
         if (strcmp(buf, QUIT) == 0) {
