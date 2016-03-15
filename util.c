@@ -87,6 +87,6 @@ void cmdManagement(int socket){
     }
 }
 
-size_t sendList(int socket){
+size_t sendList(int socket, ){
     
 }

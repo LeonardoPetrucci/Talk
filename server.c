@@ -27,7 +27,7 @@
  *
  *  IMPORTANTISSIMO: CODICE SCRITTO IN C99! per compilare aggiungere alla riga -std=C99
  */
-client_info     clist[MAX_USERS]; //massimo numero di utenti nella chatroom
+
 int             connections = 0;
 
 /*  Thread di gestione della connessione
