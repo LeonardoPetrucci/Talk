@@ -6,11 +6,14 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
+#include "server.h"
 #include "structs.h"
 #include "commands.h"
 #include "messages.h"
 #include "macros.h"
+#include "chat.h"
 
 
 
@@ -22,7 +25,7 @@ void close_and_cleanup(int socket){
     exit(EXIT_SUCCESS);
 }
 
-void cmdManagement(int socket){
+void cmdManagement(int socket, client_info* client){
     while (1) {
 
         char buf[MAX_MESSAGE_LENGTH];
@@ -48,11 +51,32 @@ void cmdManagement(int socket){
         }
 
         else if (strncmp(buf, CONNECTION, SIZE_CONNECTION) == 0) {
-            char *user_name;
-            strncpy(user_name, buf + SIZE_CONNECTION, strlen(buf) - SIZE_CONNECTION);
-            //settaggio chat_session ...
+            char *username;
+            strncpy(username, buf + SIZE_CONNECTION +1, strlen(buf) - SIZE_CONNECTION - 1);
 
+            //devo trovare la struct info con quello username
+            client_info* altro = trovaPartner(username);
 
+            if (*altro == NULL){
+                char* not_found = "Utente non trovato";
+                ret = WriteSocket(socket,not_found,strlen(not_found));
+                ERROR_HELPER(ret, "Errore in 'Utente non Trovato'");
+            }
+
+            char* found;
+            sprintf(found,"Utente %s trovato! Ti mando in chat_session:",altro->username);
+            ret = WriteSocket(socket, found,strlen(found));
+
+            //lancio il thread che gestisce la chat session..
+
+            pthread_t chat_thread;
+            chat_args* arg = (chat_args*)malloc(sizeof(chat_args));
+
+            ret = pthread_create(&chat_thread,NULL,(void*)&chat_session,(void*)&arg);
+            if (ret != 0)
+                printf("Errore nella creazione del chat_thread. Code Error: %d", errno);
+
+            pthread_join(chat_thread,NULL);
         }
 
         else {
@@ -63,6 +87,26 @@ void cmdManagement(int socket){
     }
 }
 
-size_t sendList(int socket){
+size_t sendList(int socket, client_info* info){
+    char* lista = "";
 
+    for (int i = 0; i < MAX_USERS; i++){
+        if (clist[i]->available == 1 && info->sock != clist[i].sock )
+            strcat(lista, clist[i].username);
+            strcat(lista, ", ");
+    }
+
+    int ret = WriteSocket(socket, lista, strlen(lista));
+    return ret;
+
+}
+
+client_info* trovaPartner(char username[]){
+    for (int i = 0; i < MAX_USERS; i++){
+        if (strcmp(clist[i].username, username)== 0){
+            return clist[i];
+        }
+    }
+
+    return NULL;
 }
