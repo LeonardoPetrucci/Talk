@@ -1,9 +1,8 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+//
+// Created by Leonardo on 15/03/2016.
+//
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -13,124 +12,86 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <errno.h>
 
-#include "server.h"
+#include "structs.h"
+#include "macros.h"
+#include "messages.h"
+#include "chat.h"
+/*  SERVER
+ *  Il server deve tenere conto delle seguenti informazioni:
+ *      - Lista dei client connessi disponibili (da mostrare, implementata tramite array)
+ *      - Socket di ascolto
+ *      - Indirizzo IP (da mostrare)
+ *      - Porta TCP (da mostrare)
+ *
+ *  IMPORTANTISSIMO: CODICE SCRITTO IN C99! per compilare aggiungere alla riga -std=C99
+ */
+client_info     clist[MAX_USERS]; //massimo numero di utenti nella chatroom
+int             connections = 0;
 
-void* _connection_thread(void* param){ /*sostituisci argomenti con la struttura apposita*/
-    struct connection_thread_args_t* p = (struct connection_thread_args_t*) param;
+/*  Thread di gestione della connessione
+ *  Il thread deve gestire l'inserimento del client appena connesso nella lista di client connessi, utilizzando
+ *  opportuni semafori per evitare problemi di sincronizzazione di questa. Dopo che sarà verificata la disponibilità
+ *  di connessione tramite confronto con il numero connections, verrà chiesto di scegliere un nome utente.
+ *  Settato il nome utente, verrà inviata al client la lista dei client connessi disponibili.
+ */
+void* _connection_handler(int socket_descriptor) {
+    puts("THREAD creato correttamente\n"); //messaggio al solo scopo di debugging
 
-    puts("SONO IL THREAD\n");
-    int read_bytes;
-    char buffer[MAX_MESSAGE_LENGTH];
-    char set_username[MAX_NAME_LENGTH];
+    int     bytes;
+    char    buffer[MAX_MESSAGE_LENGTH];
+    char    name[MAX_NAME_LENGTH];
 
-    /*dobbiamo gestire con i semafori la sincronizzazione per scrivere dentro la lista dei client*/
     bzero(buffer, sizeof(buffer));
-    read_bytes = write(p->sock, "Connected with the server!\n Welcome, first of all you need to create a username (max 20 characters):\n", 128);
-    if(read_bytes < 0) {
-        perror("ERROR on write operation");
-        exit(1);
-    }
-    /*inserire in un ciclo while finche non viene settato correttamente il nome*/
-    read_bytes = read(p->sock, buffer, 20);
-    if(read_bytes < 0) {
-        perror("ERROR on read operation");
-        exit(1);
-    }
-    memcpy(&set_username, &buffer, MAX_NAME_LENGTH);
-    int i; for(i = 0; i < MAX_USERS; i++) {
-        if(i == p->position) continue;
-        if(strcmp(p->client_list[i].username, set_username) == 0) {
-            puts("This username is already used!\n");
-        }
-    }
-    memcpy(&p->client_list[p->position].username, &set_username, MAX_NAME_LENGTH);
-    puts("Username is OK.\n");
-    p->client_list[p->position].available = 1;
-    char* instruction = "You are in the main room. Here you can select a partner from the list below typing $connect USERNAME, where USERNAME is the chosen partner. Type $close to exit or $help to get a full command list.\n";
-    read_bytes = write(p.sock, instruction, sizeof(instruction));
-    for(i = 0; i < MAX_USERS; i++) {
-        if(p->client_list[i].available == 1) {
-            read_bytes = write(p->sock, p->client_list[i].username, sizeof(p->client_list[i].username));
-            if(read_bytes < 0){
-                perror("ERROR on write operation\n");
-                exit(1);
-            }
-        }
-    }
+    bzero(name, sizeof(name));
+    //assuzione che tutto vada bene, assoluamente da cambiare!!!
+    bytes = WriteSocket(socket_descriptor, WELCOME, sizeof(WELCOME));
+
 
 }
 
-int main(int argc, char *argv[]) {
-    /*  Occorre passare al main l'indirizzo IP e la porta su cui si vuole
-     *  far girare il server.
-     */
-    if(argc < 3) {
-        puts("Please insert a IP address and a port number\n");
-        exit(1);
-    }
-    /*  Inizializzazione della variabili che servono al server:
-     *  - Descrittore socket
-     *  - Indirizzo IP del server
-     *  - Numero di porta
-     *  - Lista dei client connessi
-     *  - Buffer per messaggi
-     *    - Username del client
-     *    - Socket del clent
-     *    - Indirizzo del client
-     *    - Lunghezza indirizzo client
-     *    - Flag di disponibilità
-     */
-    int server_socket, client_socket, client_length, port_number = atoi(argv[2]);
-    struct sockaddr_in server_address, client_address;
-    struct client_info_t connected_clients[MAX_USERS];
-    char*ip_address = argv[1];
+int main() {
+    /*Dichiarazione variabili utili*/
+    int     listening_socket;
+    struct  sockaddr_in server_address;
+    int     connection_socket;
+    struct  sockaddr_in client_address;
+    int     port = 3000; //cambiare gestione porta
+    int     sin_length;
 
-    bzero((char*)&server_address, sizeof(server_address));
-    bzero((char*)&connected_clients, sizeof(connected_clients));
-    int i;for(i = 0; i < MAX_USERS; i++) {
-        connected_clients[i].connection_socket = -2;
+    /*Pulizia delle strutture utilizzate*/
+    memset((void*)&clist, 0, sizeof(clist));
+    memset((void*)&server_address, 0, sizeof(server_address));
+    memset((void*)&client_address, 0, sizeof(client_address));
+
+    /*Costruzione impalcatura di connessione*/
+    for(int i = 0; i < MAX_USERS; i++) {
+        clist[i].sock = -2;
     }
-    
-    server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if(server_socket < 0) {
-        perror("ERROR on socket operation");
-        exit(1);
+
+    if((listening_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+        perror("ERRORE: operazione socket non riuscita"); //sostituisci i perror con system call gestite tramite errno
+        exit(EXIT_FAILURE);
     }
-    
+
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr(ip_address);
-    server_address.sin_port = htons(port_number);
-    
-    if(bind(server_socket, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) {
-        perror("ERROR on bind operation");
-        exit(1);
-    }
-    
-    printf("Server running...\nAddress: %s Port number: %d\n", ip_address, port_number);
-    listen(server_socket, 5);
-    
-    while(1) {
-        for(i = 0; i < MAX_USERS; i++) {
-            if(connected_clients[i].connection_socket < -1) {
-                connected_clients[i].address_length = sizeof(connected_clients[i].address);
-                connected_clients[i].connection_socket = accept(server_socket, (struct sockaddr*)&connected_clients[i].address, &connected_clients[i].address_length);
-                if(connected_clients[i].connection_socket < 0) {
-                    perror("ERROR on accept operation");
-                    exit(1);
-                }
-                int handler;
-                pthread_t thread_handler;
-                struct connection_thread_args_t args;
-                bzero((char*)&args, sizeof(args));
-                args.sock = connected_clients[i].connection_socket;
-                args.client_list = connected_clients;
-                args.position = i;
-                handler = pthread_create(&handler, NULL, _connection_thread, (void*)&args);
-                assert(handler == 0);
-                pthread_join(thread_handler, NULL);
-            }
-        }
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(port);
 
+    if(bind(listening_socket, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) {
+        perror("ERRORE: operazione bind non riuscita");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Server running...\n");
+    listen(listening_socket, CONNECTION_QUEUE);
+    while(1) {
+        sin_length = sizeof(struct sockaddr_in);
+        if((connection_socket = accept(listening_socket, (struct sockaddr*)&client_address, &sin_length)) < 0) {
+            perror("ERRORE: operazione accept non riuscita");
+            exit(EXIT_FAILURE);
+        }
+        puts("CONNESSO CON UN CLIENT\n");
     }
 }
