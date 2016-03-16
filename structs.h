@@ -11,8 +11,6 @@
 typedef struct {
     char username[MAX_NAME_LENGTH];
     int sock;
-    struct sockaddr_in address;
-    int address_length;
     int available;
     int partner;
 } client_info;

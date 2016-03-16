@@ -30,7 +30,7 @@
  *  IMPORTANTISSIMO: CODICE SCRITTO IN C99! per compilare aggiungere alla riga -std=C99
  */
 
-int             connections = 0;
+int     connections = 0;
 
 /*  Thread di gestione della connessione
  *  Il thread deve gestire l'inserimento del client appena connesso nella lista di client connessi, utilizzando
@@ -42,14 +42,35 @@ void* _connection_handler(int socket_descriptor) {
     puts("THREAD creato correttamente\n"); //messaggio al solo scopo di debugging
 
     int     bytes;
+    int     position = -1;
     char    buffer[MAX_MESSAGE_LENGTH];
-    char    name[MAX_NAME_LENGTH];
 
-    bzero(buffer, sizeof(buffer));
-    bzero(name, sizeof(name));
+    bzero(buffer, sizeof(buffer)); //sostituisci con memset
     //assuzione che tutto vada bene, assoluamente da cambiare!!!
-    bytes = WriteSocket(socket_descriptor, WELCOME, sizeof(WELCOME));
-
+    for(int i = 0; i < MAX_USERS; i++) {
+        if(clist[i].sock < 0) {
+            position = i;
+            break;
+        }
+    }
+    if(position < 0) {
+        bytes = WriteSocket(socket_descriptor, NO, sizeof(NO));
+        close(socket_descriptor);
+        pthread_exit(EXIT_SUCCESS);
+    }
+    while(1) {
+        for(int i = 0; i < MAX_USERS; i++) {
+            bytes = WriteSocket(socket_descriptor, NAME, sizeof(NAME));
+            bytes = ReadSocket(socket_descriptor, buffer, sizeof(MAX_NAME_LENGTH));
+            if(strncmp(clist[i].username, buffer, sizeof(MAX_NAME_LENGTH)) == 0) {
+                i = 0;
+            }
+        }
+        memcpy(clist[position].username, buffer, MAX_NAME_LENGTH);
+        clist[position].sock = socket_descriptor;
+        clist[position].available = 1;
+        clist[position].partner = -1;
+    }
 
 }
 
@@ -95,5 +116,7 @@ int main() {
             exit(EXIT_FAILURE);
         }
         puts("CONNESSO CON UN CLIENT\n");
+        pthread_t ch;
+        pthread_create(&ch, NULL, _connection_handler, &connection_socket);
     }
 }
