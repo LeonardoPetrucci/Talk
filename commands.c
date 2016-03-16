@@ -41,7 +41,7 @@ void cmdManagement(int socket, client_info* client){
         }
 
         else if (strcmp(buf, LIST) == 0) {
-            ret = sendList(socket);
+            ret = sendList(socket,client);
             ERROR_HELPER(ret, "Error in sending user list");
         }
 
@@ -51,32 +51,12 @@ void cmdManagement(int socket, client_info* client){
         }
 
         else if (strncmp(buf, CONNECTION, SIZE_CONNECTION) == 0) {
+
             char *username;
             strncpy(username, buf + SIZE_CONNECTION +1, strlen(buf) - SIZE_CONNECTION - 1);
 
-            //devo trovare la struct info con quello username
-            client_info* altro = trovaPartner(username);
+            startChatSession(socket,client,username);
 
-            if (*altro == NULL){
-                char* not_found = "Utente non trovato";
-                ret = WriteSocket(socket,not_found,strlen(not_found));
-                ERROR_HELPER(ret, "Errore in 'Utente non Trovato'");
-            }
-
-            char* found;
-            sprintf(found,"Utente %s trovato! Ti mando in chat_session:",altro->username);
-            ret = WriteSocket(socket, found,strlen(found));
-
-            //lancio il thread che gestisce la chat session..
-
-            pthread_t chat_thread;
-            chat_args* arg = (chat_args*)malloc(sizeof(chat_args));
-
-            ret = pthread_create(&chat_thread,NULL,(void*)&chat_session,(void*)&arg);
-            if (ret != 0)
-                printf("Errore nella creazione del chat_thread. Code Error: %d", errno);
-
-            pthread_join(chat_thread,NULL);
         }
 
         else {
@@ -91,7 +71,7 @@ size_t sendList(int socket, client_info* info){
     char* lista = "";
 
     for (int i = 0; i < MAX_USERS; i++){
-        if (clist[i]->available == 1 && info->sock != clist[i].sock )
+        if (clist[i].available == 1 && info->sock != clist[i].sock )
             strcat(lista, clist[i].username);
             strcat(lista, ", ");
     }
@@ -104,9 +84,43 @@ size_t sendList(int socket, client_info* info){
 client_info* trovaPartner(char username[]){
     for (int i = 0; i < MAX_USERS; i++){
         if (strcmp(clist[i].username, username)== 0){
-            return clist[i];
+            return &clist[i];
         }
     }
 
     return NULL;
+}
+
+void startChatSession(int socket, client_info *client, char username[]) {
+
+    int ret;
+
+    //devo trovare la struct info con quello username
+    client_info* altro = trovaPartner(username);
+
+    if (altro == NULL){
+        char* not_found = "Utente non trovato\n";
+        ret = WriteSocket(socket,not_found,strlen(not_found));
+        ERROR_HELPER(ret, "Errore in 'Utente non Trovato'");
+    }
+
+    char* found;
+    sprintf(found,"Utente %s trovato! Ti mando in chat_session!\n",altro->username);
+    ret = WriteSocket(socket, found,strlen(found));
+
+    //lancio il thread che gestisce la chat session..
+
+    pthread_t chat_thread;
+    chat_args* arg = (chat_args*)malloc(sizeof(chat_args));
+    arg->client1 = client;
+    arg->client2 = altro;
+
+    ret = pthread_create(&chat_thread,NULL,(void*)&chat_session,(void*)&arg);
+    if (ret != 0)
+        printf("Errore nella creazione del chat_thread. Code Error: %d\n", errno);
+
+    //devo inviare segnale a thread partner
+    //PROSEGUI DA QUI
+
+    pthread_join(chat_thread,NULL);
 }
