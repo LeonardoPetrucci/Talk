@@ -18,17 +18,19 @@
 #include "macros.h"
 #include "messages.h"
 #include "chat.h"
-#include "commands.h"
+#include "server.h"
+
 /*  SERVER
  *  Il server deve tenere conto delle seguenti informazioni:
  *      - Lista dei client connessi disponibili (da mostrare, implementata tramite array)
  *      - Socket di ascolto
- *      - Indirizzo IP
- *      - Porta TCP
+ *      - Indirizzo IP (da mostrare)
+ *      - Porta TCP (da mostrare)
  *
  *  IMPORTANTISSIMO: CODICE SCRITTO IN C99! per compilare aggiungere alla riga -std=C99
  */
-int connections = 0;
+
+int             connections = 0;
 
 /*  Thread di gestione della connessione
  *  Il thread deve gestire l'inserimento del client appena connesso nella lista di client connessi, utilizzando
@@ -39,33 +41,16 @@ int connections = 0;
 void* _connection_handler(int socket_descriptor) {
     puts("THREAD creato correttamente\n"); //messaggio al solo scopo di debugging
 
-    int     n, position = -1;
+    int     bytes;
     char    buffer[MAX_MESSAGE_LENGTH];
     char    name[MAX_NAME_LENGTH];
 
     bzero(buffer, sizeof(buffer));
     bzero(name, sizeof(name));
     //assuzione che tutto vada bene, assoluamente da cambiare!!!
-    n = WriteSocket(socket_descriptor, WELCOME, sizeof(WELCOME));
-    n = ReadSocket(socket_descriptor, name, sizeof(name));
-    for(int i = 0; i < MAX_USERS; i++) {
-        if(clist[i].sock < 0) {
-            //SEZIONE CRITICA, PROTEGGI CON SEMAFORO!!!
-            clist[i].sock = socket_descriptor;
-            memcpy(clist[i].username, name, MAX_NAME_LENGTH);
-            clist[i].partner = -1;
-            clist[i].available = 1;
-            break;
-        }
-        position = i;
-        break;
-    }
-    if(position < 0) {
-        printf("non ho assegnato nessuna posizione");
-        //chiudere la connessione con il server perchè non c'è posto nella lista
-    }
-    sendList(socket_descriptor, clist, position);
-    exit(EXIT_SUCCESS);
+    bytes = WriteSocket(socket_descriptor, WELCOME, sizeof(WELCOME));
+
+
 }
 
 int main() {
@@ -93,8 +78,8 @@ int main() {
     }
 
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr("127.0.0.1"); //cambiare
-    server_address.sin_port = htons(3000); //cambiare
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(port);
 
     if(bind(listening_socket, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) {
         perror("ERRORE: operazione bind non riuscita");
@@ -110,8 +95,5 @@ int main() {
             exit(EXIT_FAILURE);
         }
         puts("CONNESSO CON UN CLIENT\n");
-        pthread_t* ch;
-        pthread_create(&ch, NULL, _connection_handler, connection_socket);
-
     }
 }

@@ -5,6 +5,7 @@
 #ifndef TALK_STRUCTS_H
 #define TALK_STRUCTS_H
 
+#include <netinet/in.h>
 #include "macros.h"
 
 typedef struct {
