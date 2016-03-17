@@ -35,12 +35,13 @@
  *  di connessione tramite confronto con il numero connections, verrà chiesto di scegliere un nome utente.
  *  Settato il nome utente, verrà inviata al client la lista dei client connessi disponibili.
  */
-void* _connection_handler(int socket_descriptor) {
+void* _connection_handler(void* param) {
     puts("THREAD creato correttamente\n"); //messaggio al solo scopo di debugging
-
-    int     bytes
+    int socket_descriptor = (int*)param;
+    int     bytes;
     int     position = -1;
     char    buffer[MAX_MESSAGE_LENGTH];
+    int     name_set = 0;
 
     bzero(buffer, sizeof(buffer)); //sostituisci con memset
     //assuzione che tutto vada bene, assoluamente da cambiare!!!
@@ -57,7 +58,28 @@ void* _connection_handler(int socket_descriptor) {
     }
     write(socket_descriptor, WELCOME, strlen(WELCOME));
     while((bytes = read(socket_descriptor, buffer, MAX_MESSAGE_LENGTH)) > 0) {
+        //aggiungo il terminatore di stringa
         buffer[bytes] = '\0';
+        for(int i = 0; i < MAX_USERS; i++) {
+            if(clist[i].sock > 0 && i != position) {
+                if(strncmp(clist[i].username, buffer, MAX_NAME_LENGTH) == 0) {
+                    write(socket_descriptor, NONAME, strlen(NONAME));
+                    name_set = 0;
+                    break;
+                }
+            }
+        }
+        name_set = 1;
+        if(name_set > 0) {
+            clist[position].sock = socket_descriptor;
+            clist[position].position = position;
+            clist[position].partner = -1;
+            clist[position].available = 1;
+            memcpy(clist[position].username, buffer, MAX_NAME_LENGTH);
+            memset(buffer, 0, MAX_MESSAGE_LENGTH);
+        }
+        name_set = 0;
+        //forse c'è qualche errore, però dovrebbe rendere l'idea
     }
 
 

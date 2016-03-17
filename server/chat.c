@@ -7,6 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*guardando il codice https://gist.github.com/silv3rm00n/5821760, la write ha una gestione più "elementare" della
+ * read, che invece necessita dopo l'operazione di aggiungere il terminatore di stringa '\0' alla posizione
+ * buffer[byte_letti]. Quando dobbiamo inviare le stringhe definite in messages.h facciamo la semplice write,
+ * mentre quando invece dobbiamo utilizzare il buffer per inviare i messaggi, dopo la write dobbiamo fare memset
+ * sul buffer per pulirlo.*/
+
 size_t ReadSocket(int ds, char buf[], int n){
 
     size_t read_bytes = 0; int ret;
