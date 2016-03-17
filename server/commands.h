@@ -10,6 +10,14 @@
 #define HELP            "$help"
 #define CONNECTION      "$conn"
 
+
+#define ERROR_HELPER(ret, message) do{                              \
+    if (ret < 0){                                                   \
+        fprintf(stderr, "%s: %s\n", message, strerror(errno));      \
+        exit(EXIT_FAILURE);                                         \
+    }                                                               \
+} while(0)
+
 /*
  * Manage special command between client and server
  */
