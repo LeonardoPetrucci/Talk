@@ -14,7 +14,7 @@ typedef struct {
     int sock;
     int available;
     int partner;
-    int position;
+    int position; //per evitare di fare cicli for ogni volta che si vuole interagire con il client, da vedere meglio
 } client_info;
 
 client_info clist[MAX_USERS];
