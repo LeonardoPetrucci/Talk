@@ -37,7 +37,8 @@ int main(char argc, char* argv[]){
     printf("Socket operation... DONE\n");
     //Initializing connected client list
     memset(&list, 0, sizeof(list));
-    for(int i = 0; i < MAX_USERS; i++) {
+    int i;
+    for(i = 0; i < MAX_USERS; i++) {
         list[i].sock = -1;
     }
     printf("Setting up connected client list... DONE\n");
@@ -67,7 +68,8 @@ int main(char argc, char* argv[]){
         printf("Accept operation... DONE\n");
         //Checking space in the connection list, if not, client disconnected
         int free_space = 0;
-        for(int i = 0; i < MAX_USERS; i++) {
+        int i;
+        for(i = 0; i < MAX_USERS; i++) {
             if(list[i].sock < 0) {
                 free_space = 1;
                 //initializing thread and thread data space
