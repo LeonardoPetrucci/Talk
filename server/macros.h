@@ -1,14 +1,15 @@
 //
-// Created by Leonardo on 15/03/2016.
+// Created by Leonardo on 17/03/2016.
 //
 
-#ifndef TALK_MACROS_H
-#define TALK_MACROS_H
+#ifndef _MACROS_H
+#define _MACROS_H
 
-#define MAX_MESSAGE_LENGTH  256
+#define MAX_CONNECTIONS     4
+#define DEFAULT_PORT        3000
+
 #define MAX_USERS           20
+#define MAX_MESSAGE_LENGTH  1024
 #define MAX_NAME_LENGTH     20
-#define SIZE_CONNECTION     5
-#define CONNECTION_QUEUE    5
 
-#endif //TALK_MACROS_H
+#endif //TALKSERVER_MACROS_H

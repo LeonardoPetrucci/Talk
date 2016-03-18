@@ -1,33 +1,21 @@
 //
-// Created by Leonardo on 15/03/2016.
+// Created by Leonardo on 17/03/2016.
 //
 
-#ifndef TALK_STRUCTS_H
-#define TALK_STRUCTS_H
-
-#include <netinet/in.h>
-#include "macros.h"
-
-
+#ifndef _STRUCTS_H
+#define _STRUCTS_H
+//client info, for each connected client with the server
+typedef struct{
+    char name[MAX_NAME_LENGTH];     //user nickname
+    int sock;                       //client connection socket
+    int partner;                    //partner connection socket
+    int available;                  //availability flag, used for initializing a chat session
+}client_info;
+//conntected client list
+extern client_info   list[MAX_USERS];
+//connection handler thread arguments
 typedef struct {
-    char username[MAX_NAME_LENGTH];
-    int sock;
-    int available;
-    int partner;
-    int position; //per evitare di fare cicli for ogni volta che si vuole interagire con il client, da vedere meglio
-} client_info;
-
-client_info clist[MAX_USERS];
-
-typedef struct msg_s {
-    char mittente[MAX_NAME_LENGTH];
-    long type;
-    char msg[MAX_MESSAGE_LENGTH];
-} msg_t;
-
-typedef struct chat_arg{
-    client_info* client1;
-    client_info* client2;
-} chat_args;
-
-#endif //TALK_STRUCTS_H
+    int sock;   //connection socket
+    int pos;    //client list position index
+}chargs_t;
+#endif //_STRUCTS_H
