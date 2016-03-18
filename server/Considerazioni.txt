@@ -1,0 +1,7 @@
+utilizzare errno per controllare il codice di errore, scrivere quindi sullo standard error
+e poi nuovamente sullo standard output tramite printf per controllare errno
+
+dopo il binding sarebbe carino fare una fork per poi chiamare ifconfig utilizzando exec
+forse il descrittore del thread connection handler è superfluo, faccio direttamente una if?
+
+bisogna ancora sincronizzare tutto con i semafori
