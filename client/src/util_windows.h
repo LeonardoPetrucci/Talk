@@ -1,3 +1,5 @@
+#include <Windows.h>
+
 #define DEFAULT_PORTNUMBER 3000
 #define MAX_LENGTH 1024
 
@@ -26,3 +28,11 @@ size_t	WriteSocket(int ds, char buf[], int n);
 	Chiude e libera le risorse del socket.
 */
 void close_and_cleanup(SOCKET socket);
+/*
+*	Crea il thread che è sempre in ascolto sul socket
+*/
+HANDLE LaunchThread(int* ds);
+/*
+* Thread sempre in ascolto sul socket.
+*/
+void ListenSocket(void* arg);
