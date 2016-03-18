@@ -16,27 +16,27 @@ size_t  ReadSocket(int ds, char buf[], int n);
 size_t  WriteSocket(int ds, char buf[], int n);
 /*
  * Gestisce la chat_session tra due utenti. Avrà minimo due parametri in ingresso che sono le struct con le informazioni sugli user.
- */
+ *//*
 void chat_session(chat_args* args);
 
 /*
  * Inizializza la coda di messaggi per la chat_session corrente.Key unico nel sistema.
- */
+
 int initialize_queue(int key);
 
 /*
  * Inserisce nella coda di messaggi un messaggio.
- */
+
 int enqueue(char* nickname, char* msg);
 
 /*
  * Leva dalla coda un messaggio
- */
+
 msg_t* dequeue();
 
 /*
  * Funzione thread. Routine che lancia dequeue
- */
+
 void dequeue_routine();
 
 /*
