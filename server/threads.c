@@ -28,6 +28,7 @@ void* _connection_handler(void* args) {
         write(chargs->sock, SET_NAME, strlen(SET_NAME));
         printf("Waiting for a username...\n");
         bytes = ReadSocket(chargs->sock, buffer, MAX_MESSAGE_LENGTH);
+        list[chargs->pos].name = (char*)malloc(sizeof(char) * bytes);
         if(bytes > 0) {
             printf("Chosen name: %s\n", buffer);
             check = 1;
@@ -38,7 +39,8 @@ void* _connection_handler(void* args) {
             list[chargs->pos].sock = -1;
             pthread_exit(0);
         }
-        for(int i = 0; i < MAX_USERS; i++) {
+        int i;
+        for(i = 0; i < MAX_USERS; i++) {
             printf("%d\n", i);
             if(i != chargs->pos && list[i].sock > 0) {
                 if(strncmp(buffer, list[i].name, MAX_NAME_LENGTH) == 0) {
