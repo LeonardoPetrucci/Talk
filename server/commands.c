@@ -16,39 +16,36 @@
 
 
 
-void close_and_cleanup(int socket){
-    //It should be deallcare anche le strutture dati per il client ?
-
-    close(socket);
-    //free(client_arg);
-    exit(EXIT_SUCCESS);
+void close_and_cleanup(int sock, int pos, client_info* list){
+    close(sock);
+    memset(&list[pos], 0, sizeof(client_info));
+    list[pos].sock = -1;
+    pthread_exit(0);
 }
 
-void cmdManagement(int socket, client_info* client){
+void cmdManagement(int sock, int pos, client_info* list){
+    int     ret;
+    char    buf[MAX_MESSAGE_LENGTH];
+    send(sock, WAITFORCMD, strlen(WAITFORCMD), 0);
     while (1) {
-
-        char buf[MAX_MESSAGE_LENGTH];
-        int ret = ReadSocket(socket, buf, MAX_MESSAGE_LENGTH);
+        ret = ReadSocket(sock, buf, MAX_MESSAGE_LENGTH);
         ERROR_HELPER(ret, "Error in reading from socket");
 
         if (strcmp(buf, QUIT) == 0) {
-            char *quit_message = "Sto chiudendo la connessione.\n";
-            ret = WriteSocket(socket, quit_message, strlen(quit_message));
+            ret = send(sock, QUITMESS, strlen(QUITMESS), 0);
             ERROR_HELPER(ret, "Error in sending quit_message");
-
-            close_and_cleanup(socket);
+            close_and_cleanup(sock, pos, list);
         }
 
         else if (strcmp(buf, LIST) == 0) {
-            ret = sendList(socket,client);
-            ERROR_HELPER(ret, "Error in sending user list");
+            sendList(sock, list);
         }
 
         else if (strcmp(buf, HELP) == 0) {
-            ret = WriteSocket(socket, HELPMESSAGE, strlen(HELPMESSAGE));
+            ret = send(sock, HELPMESSAGE, strlen(HELPMESSAGE), 0);
             ERROR_HELPER(ret, "Error in sending help message");
         }
-
+        /*
         else if (strncmp(buf, CONNECTION, SIZE_CONNECTION) == 0) {
 
             char *username;
@@ -59,38 +56,43 @@ void cmdManagement(int socket, client_info* client){
         }
 
         else {
-            char *msg = "comando non riconosciuto, non faccio nulla\n";
-            ret = WriteSocket(socket,msg,strlen(msg));
-            ERROR_HELPER(ret,"Errore in cmdManagement");
-        }
+            send(sock, WAITFORCMD, strlen(WAITFORCMD), 0);
+        }*/
     }
 }
 
-size_t sendList(int socket, client_info* info){
-    char* lista = "";
+void sendList(int sock, client_info* list){        //poi cambiare il tipo di ritorno per far restituire qualcosa di gestibile
+    /*char* lista = "";
 
     for (int i = 0; i < MAX_USERS; i++){
-        if (clist[i].available == 1 && info->sock != clist[i].sock )
+        if (list[i].available && info->sock != list[i].sock )
             strcat(lista, clist[i].username);
             strcat(lista, ", ");
     }
 
     int ret = WriteSocket(socket, lista, strlen(lista));
     return ret;
-
-}
-
-client_info* trovaPartner(char username[]){
-    for (int i = 0; i < MAX_USERS; i++){
-        if (strcmp(clist[i].username, username)== 0){
-            return &clist[i];
+     */
+    int i;
+    for(i = 0; i < MAX_USERS; i++) {
+        if(list[i].sock != sock && list[i].available) {
+            //l'assunzione è che un client disponibile ha un nome già settato, dunque non viene fatto un controllo su come è stato riempito name, che si assume correttamente impostato dal thread relativo a tale client
+            send(sock, strcat(list[i].name, "\n"), strlen(list[i].name) + 1, 0);
         }
     }
-
-    return NULL;
 }
 
-void startChatSession(int socket, client_info *client, char username[]) {
+/*int trovaPartner(char username[]){
+    int i;
+    for (i = 0; i < MAX_USERS; i++){
+        if (strcmp(clist[i].username, username)== 0){
+            return i;
+        }
+    }
+    return -1;
+}
+*/
+/*void startChatSession(int socket, char username[]) {
 
     int ret;
 
@@ -123,3 +125,4 @@ void startChatSession(int socket, client_info *client, char username[]) {
 
     pthread_join(chat_thread,NULL);
 }
+*/
