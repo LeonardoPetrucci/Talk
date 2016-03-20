@@ -38,7 +38,6 @@ void* _connection_handler(void* args) {
         }
         int i;
         for(i = 0; i < MAX_USERS; i++) {
-            printf("%d\n", i);
             if(i != chargs->pos && list[i].sock > 0) {
                 if(strcmp(buffer, list[i].name) == 0) {
                     check = 0;
@@ -60,4 +59,11 @@ void* _connection_handler(void* args) {
     cmdManagement(chargs->sock, chargs->pos, chargs->l);
 }
 
-
+/*void* killClient() {
+    int i;
+    for(i = 0; i < MAX_USERS; i++) {
+        close_and_cleanup(list[i].sock, i, list);
+    }
+    printf("Server stopped.\n");
+    exit(EXIT_SUCCESS);
+}*/

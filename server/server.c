@@ -68,7 +68,7 @@ int main(char argc, char* argv[]){
     listen(lsock, MAX_CONNECTIONS);
     printf("Server running...\n");
     //accept operation and connection management
-
+    //signal(SIGINT, &killClient);
     while(1) {
         csock = accept(lsock, (struct sockaddr*)&caddr, &csize);
         if(csock < 0) {
@@ -82,11 +82,10 @@ int main(char argc, char* argv[]){
             if(list[i].sock < 0) {
                 free_space = 1;
                 //initializing thread and thread data space
-                pthread_t               ch;     //connection handler thread space
-                int                     chid;   //connection handler thread id
+                //pthread_t               ch;     //connection handler thread space
                 chargs_t                chdata = {list, csock, i}; //connection handler thread data
-                chid = pthread_create(&ch, NULL, _connection_handler, &chdata);
-                pthread_join(ch, NULL);
+                int                     chid = pthread_create(&list[i].chandler, NULL, _connection_handler, &chdata);
+                //ERROR_HELPER(chid, "ERROR: cannot create connection handler thread\n");
                 //spostare il thread nella struct del client?
                 break;
             }
@@ -94,6 +93,9 @@ int main(char argc, char* argv[]){
         if(free_space == 0) {
             write(csock, NO_MORE_SPACE, strlen(NO_MORE_SPACE));
             close(csock);
+        }
+        else {
+            //pthread_join(list[i].chandler, NULL);
         }
         free_space = 0;
     }

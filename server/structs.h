@@ -6,10 +6,11 @@
 #define _STRUCTS_H
 //client info, for each connected client with the server
 typedef struct{
-    char*            name;                       //user nickname
+    char*           name;                       //user nickname
     int             sock;                       //client connection socket
     int             partner;                    //partner connection socket
     int             available;                  //availability flag, used for initializing a chat session
+    pthread_t       chandler;                         //connection handler thread
 }client_info;
 //conntected client list
 extern              client_info *list; //*list;

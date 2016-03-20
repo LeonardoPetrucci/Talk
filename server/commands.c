@@ -54,10 +54,10 @@ void cmdManagement(int sock, int pos, client_info* list){
             startChatSession(socket,client,username);
 
         }
-
+        */
         else {
             send(sock, WAITFORCMD, strlen(WAITFORCMD), 0);
-        }*/
+        }
     }
 }
 
