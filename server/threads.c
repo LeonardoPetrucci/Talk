@@ -17,6 +17,7 @@
 
 //connection handler thread
 void* _connection_handler(void* args) {
+    //ptread_join(&pthread_self(), NULL);
     chargs_t* chargs = (chargs_t*) args;
     client_info* list = chargs->l;
     char    buffer[MAX_MESSAGE_LENGTH]; //buffer for communication
@@ -27,7 +28,8 @@ void* _connection_handler(void* args) {
     while(!check) {
         send(chargs->sock, SET_NAME, strlen(SET_NAME), 0);
         bytes = ReadSocket(chargs->sock, buffer, MAX_MESSAGE_LENGTH);
-        list[chargs->pos].name = (char*)calloc(bytes, sizeof(char));
+        printf("%s\n", buffer);
+        //list[chargs->pos].name = (char*)calloc(bytes, sizeof(char));
         if(bytes > 0) {
             check = 1;
         }

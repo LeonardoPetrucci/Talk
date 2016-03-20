@@ -5,7 +5,6 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <string.h>
-#include "util.h"
 
 
 int initialize_queue(int sem_key){

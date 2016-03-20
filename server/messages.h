@@ -13,6 +13,6 @@
 #define WAITFORCMD      "[MAIN ROOM] Command: "
 #define QUITMESS        "You are going to be disconnected. We hope to see you again!\n"
 #define INVALID         "Invalid command.\n"
-
+#define CHOOSE          "Insert the username you want to contact: "
 
 #endif

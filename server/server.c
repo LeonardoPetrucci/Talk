@@ -36,6 +36,7 @@ int main(char argc, char* argv[]){
     //Initializing connected client list
     int i;
     for(i = 0; i < MAX_USERS; i++) {
+        list[i].name = (char*)malloc(MAX_NAME_LENGTH* sizeof(char));
         list[i].sock = -1;
     }
     //Initializing server elements
@@ -50,7 +51,7 @@ int main(char argc, char* argv[]){
         exit(EXIT_FAILURE);
     }
     //executing ifconfig operation using a child process
-    pid_t ifconfig, status;
+    /*pid_t ifconfig, status;
     ifconfig = fork();
     if(ifconfig == -1) {
         printf("Error: cannot fork.\n");
@@ -63,7 +64,7 @@ int main(char argc, char* argv[]){
     }
     else {
         wait(&status);
-    }
+    }*/
     //listen operation
     listen(lsock, MAX_CONNECTIONS);
     printf("Server running...\n");
@@ -85,6 +86,7 @@ int main(char argc, char* argv[]){
                 //pthread_t               ch;     //connection handler thread space
                 chargs_t                chdata = {list, csock, i}; //connection handler thread data
                 int                     chid = pthread_create(&list[i].chandler, NULL, _connection_handler, &chdata);
+                pthread_detach(list[i].chandler);
                 //ERROR_HELPER(chid, "ERROR: cannot create connection handler thread\n");
                 //spostare il thread nella struct del client?
                 break;
@@ -94,9 +96,9 @@ int main(char argc, char* argv[]){
             write(csock, NO_MORE_SPACE, strlen(NO_MORE_SPACE));
             close(csock);
         }
-        else {
-            //pthread_join(list[i].chandler, NULL);
-        }
+        /*else {
+            pthread_detach(list[i].chandler, NULL);
+        }*/
         free_space = 0;
     }
 }

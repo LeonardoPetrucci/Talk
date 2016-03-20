@@ -47,12 +47,24 @@ void cmdManagement(int sock, int pos, client_info* list){
         }
 
         else if (strncmp(buf, CONNECTION, SIZE_CONNECTION) == 0) {
-
-            char *username="";
-            strncpy(username, buf + SIZE_CONNECTION +1, strlen(buf) - SIZE_CONNECTION - 1);
-
-            startChatSession(sock,list,pos,username);
-
+            ret = send(sock, CHOOSE, strlen(CHOOSE));
+            ERROR_HELPER(ret, "Error in sending choose message");
+            printf("Prima read\n");
+            ret = ReadSocket(sock, buf, strlen(buf));
+            printf("%s", buf);
+            int found = trovaPartner(buf, list);
+            printf("FOUND\n");
+            if( found > 0) {
+                list[pos].available = 0;
+                char* connected1 = "Connected";
+                ret = send(sock, connected1, strlen(connected1), 0);
+                list[pos].partner = list[found].sock;
+                list[found].available = 0;
+                printf("AVAILABLE SETTATO4\n");
+                char* connected2 = "Connected with";
+                ret = send(list[found].sock, connected2, strlen(connected2), 0);
+                list[found].partner = list[pos].sock;
+            }
         }
 
         else {

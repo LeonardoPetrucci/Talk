@@ -51,17 +51,21 @@ size_t WriteSocket(int ds, char buf[], int n){
     return written_bytes;
 }
 
-int trovaPartner(char username[], client_info* list){
-    int i;
-    for (i = 0; i < MAX_USERS; i++){
-        if (strcmp(list[i].name, username)== 0){
-            return i;
+int trovaPartner(char* username, client_info* list){
+    int j;
+    printf("%s", username);
+    printf("Entro nel for\n");
+    for (j = 0; j < MAX_USERS; j++){
+        printf("%d ", j);
+        if (strcmp(list[j].name, username)== 0){
+            printf("%s\n", list[j].name);
+            return j;
         }
     }
     return -1;
 }
 
-void startChatSession(int socket,client_info* list, int pos, char username[]) {
+/*void startChatSession(int socket,client_info* list, int pos, char username[]) {
 
     int ret;
 
@@ -84,4 +88,4 @@ void startChatSession(int socket,client_info* list, int pos, char username[]) {
     //devo inviare segnale a thread partner
     //PROSEGUI DA QUI
 
-}
+}*/
