@@ -9,6 +9,7 @@
 #define QUIT            "$quit"
 #define HELP            "$help"
 #define CONNECTION      "$conn"
+#define SIZE_CONNECTION 5
 
 #define ERROR_HELPER(ret, message) do{                              \
     if (ret < 0){                                                   \
@@ -28,13 +29,5 @@ void  sendList(int sock, client_info* list);  //ho eliminato il parametro lista,
  // Manage closure and cleanup of resources
 
 void close_and_cleanup(int sock, int pos, client_info* list);
-
- // Funzione ausiliaria che trova dato lo username il partner per una chat_session
-
-//int trovaPartner(char username[]);
-
- // Esegue tutte le operazioni preliminari per l'inizio di una chat session
-
-//void startChatSession(int sock, char username[]);
 
 #endif //TALK_COMMANDS_H
