@@ -5,3 +5,12 @@ dopo il binding sarebbe carino fare una fork per poi chiamare ifconfig utilizzan
 forse il descrittore del thread connection handler è superfluo, faccio direttamente una if?
 
 bisogna ancora sincronizzare tutto con i semafori
+
+***Se chiudo un client con casca il server? BROKEN PIPE?
+
+Concorrenza sulla lista quando:
+    devi consultare la lista (disponibi) --> sendList, trovaPartner
+
+NON E' CONCORRENTE SE MODIFICHI LE COSE DELLA TUA LISTA
+
+
