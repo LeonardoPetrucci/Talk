@@ -1,22 +1,14 @@
-CC=gcc
-LFLAGS= -std=c99 -lpthread
+CC = gcc
+CFLAGS =-Wall -O0 -g
+LDFLAGS= -std=c99 -lpthread
 
 
-server: server.o commands.o msg_queue.o semaphore.o chat.o
-	$(CC) server.o commands.o msg_queue.o semaphore.o chat.o $(LFLAGS)
-
-server.o: server.c structs.h macros.h messages.h chat.h
-	$(CC) -c server.c 
-
-chat.o: chat.c 
-	$(CC) -c chat.c 
-
-commands.o: commands.c 
-	$(CC) -c commands.c
-
-msg_queue.o: msg_queue.c 
-	$(CC) -c msg_queue.c
-
-semaphore.o: semaphore.c
-	$(CC) -c semaphore.c
-
+server: messages.h chat.h commands.h threads.h macros.h semaphore.h structs.h server.c msg_queue.c chat.c threads.c semaphore.c
+	rm -f build/*.o
+	$(CC) -c msg_queue.c -o build/msg_queue.o
+	$(CC) -c server.c -o build/server.o
+	$(CC) -c commands.c -o build/commands.o
+	$(CC) -c chat.c -o build/chat.o
+	$(CC) -c threads.c -o build/threads.o
+	$(CC) -c semaphore.c -o build/semaphore.o
+	$(CC) -o server build/*.o $(LDFLAGS)
