@@ -16,15 +16,19 @@
 #include "commands.h"
 #include "semaphore.h"
 
+_Thread_local int pos;
+_Thread_local int sock;
+client_info* list;
+
 //connection handler thread
 void* _connection_handler(void* args) {
     chargs_t* chargs = (chargs_t*) args;
     /*
      * TEMPORANEA?
      */
-    int pos = chargs->pos;
-    int sock = chargs->sock;
-    client_info* list = chargs->l;
+    pos = chargs->pos;
+    sock = chargs->sock;
+    list = chargs->l;
 
     char    buffer[MAX_MESSAGE_LENGTH]; //buffer for communication
     int     bytes;      //read or written files from the buffer
@@ -71,11 +75,17 @@ void* _connection_handler(void* args) {
     cmdManagement(sock, pos, list);
 }
 
-/*void* killClient() {
+void _chat_signal(){
+    list[pos].available = 0;
+
+
+}
+
+void killClient() {
     int i;
     for(i = 0; i < MAX_USERS; i++) {
         close_and_cleanup(list[i].sock, i, list);
     }
     printf("Server stopped.\n");
     exit(EXIT_SUCCESS);
-}*/
+}

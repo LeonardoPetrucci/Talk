@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <signal.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -68,8 +69,11 @@ int main(char argc, char* argv[]){
     //listen operation
     listen(lsock, MAX_CONNECTIONS);
     printf("Server running...\n");
+
     //accept operation and connection management
-    //signal(SIGINT, &killClient);
+    signal(SIGINT, killClient);
+    signal(SIGUSR1,_chat_signal);
+
     while(1) {
         csock = accept(lsock, (struct sockaddr*)&caddr, &csize);
         if(csock < 0) {

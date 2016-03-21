@@ -7,4 +7,13 @@
 //connection handler thread
 void* _connection_handler(void* args);
 
+/*
+ * Manage chat signal
+ */
+void _chat_signal();
+
+/*
+ * Manage interrupt signal
+ */
+void killClient();
 #endif //TALKSERVER_THREADS_H

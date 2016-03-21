@@ -27,8 +27,11 @@ void close_and_cleanup(int sock, int pos, client_info* list){
 void cmdManagement(int sock, int pos, client_info* list){
     int     ret;
     char    buf[MAX_MESSAGE_LENGTH];
-    send(sock, WAITFORCMD, strlen(WAITFORCMD), 0);
+
     while (1) {
+        ret = send(sock, WAITFORCMD, strlen(WAITFORCMD), 0);
+        ERROR_HELPER(ret, "Error in sending WAITFORCMD");
+
         ret = ReadSocket(sock, buf, MAX_MESSAGE_LENGTH);
         ERROR_HELPER(ret, "Error in reading from socket");
 
@@ -50,27 +53,29 @@ void cmdManagement(int sock, int pos, client_info* list){
         else if (strcmp(buf, CONNECTION) == 0) {
             ret = send(sock, CHOOSE, strlen(CHOOSE),0);
             ERROR_HELPER(ret, "Error in sending choose message");
-            printf("Prima read\n");
+            sendList(sock,list);
+
             ret = ReadSocket(sock, buf, strlen(buf));
-            printf("%s", buf);
             int found = trovaPartner(buf, list);
-            printf("FOUND\n");
-            if( found > 0) {
+
+            if( found >= 0) {
                 list[pos].available = 0;
                 char* connected1 = "Connected";
                 ret = send(sock, connected1, strlen(connected1), 0);
                 list[pos].partner = list[found].sock;
-                list[found].available = 0;
-                printf("AVAILABLE SETTATO4\n");
-                char* connected2 = "Connected with";
+
+                char* connected2 = "Connected with ";
+                strcat(connected2, list[pos].name);
                 ret = send(list[found].sock, connected2, strlen(connected2), 0);
                 list[found].partner = list[pos].sock;
+
+
             }
         }
 
         else {
-            send(sock, WAITFORCMD, strlen(WAITFORCMD), 0);
         }
+
     }
 }
 
@@ -80,7 +85,10 @@ void sendList(int sock, client_info* list){        //poi cambiare il tipo di rit
     for(i = 0; i < MAX_USERS; i++) {
         if(list[i].sock != sock && list[i].available) {
             //l'assunzione è che un client disponibile ha un nome già settato, dunque non viene fatto un controllo su come è stato riempito name, che si assume correttamente impostato dal thread relativo a tale client
-            send(sock, strcat(list[i].name, "\n"), strlen(list[i].name) + 1 , 0);
+            int ret = send(sock, list[i].name, strlen(list[i].name) , 0);
+            ERROR_HELPER(ret, "Errore in sending list");
+            ret = send(sock, "\n", 1, 0);
+            ERROR_HELPER(ret, "Errore in sending the new line");
         }
     }
 }

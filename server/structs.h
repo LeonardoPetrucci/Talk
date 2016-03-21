@@ -11,6 +11,7 @@ typedef struct{
     int             partner;                    //partner connection socket
     int             available;                  //availability flag, used for initializing a chat session
     pthread_t       chandler;                         //connection handler thread
+    int             msg_des;
 }client_info;
 //conntected client list
 //extern              client_info *list; //*list;
@@ -21,5 +22,9 @@ typedef struct {
     int             pos;    //client list position index
 }chargs_t;
 
-
+typedef struct {
+    char* mittente;
+    long type;
+    char* messaggio;
+}msg_t;
 #endif //_STRUCTS_H

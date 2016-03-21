@@ -65,27 +65,3 @@ int trovaPartner(char* username, client_info* list){
     return -1;
 }
 
-/*void startChatSession(int socket,client_info* list, int pos, char username[]) {
-
-    int ret;
-
-    //devo trovare la struct info con quello username
-    int  altro_pos = trovaPartner(username,list);
-
-    if (altro_pos == -1){
-        char* not_found = "Utente non trovato\n";
-        ret = WriteSocket(socket,not_found,strlen(not_found));
-        ERROR_HELPER(ret, "Errore in 'Utente non Trovato'");
-        return;
-    }
-
-    char* found="";
-    sprintf(found,"Utente %s trovato! Ti mando in chat_session!\n",list[pos].name);
-    ret = WriteSocket(socket, found,strlen(found));
-
-    //lancio funzione che gestisce la chat session..
-
-    //devo inviare segnale a thread partner
-    //PROSEGUI DA QUI
-
-}*/
