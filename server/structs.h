@@ -13,12 +13,12 @@ typedef struct{
     pthread_t       chandler;                         //connection handler thread
 }client_info;
 //conntected client list
-//extern              client_info *list; //*list;
+extern              client_info *list; //*list;
 //connection handler thread arguments
 typedef struct {
     client_info*    l;
     int             sock;   //connection socket
-    int             pos;    //client list position index
+    int             pos;//client list position index
 }chargs_t;
 
 

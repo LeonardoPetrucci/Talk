@@ -22,7 +22,9 @@
 size_t ReadSocket(int ds, char buf[], int n){
     size_t read_bytes = 0; int ret;
     while (read_bytes <= n){
+
         ret = recv(ds,buf + read_bytes,n,0);
+
         if(ret == -1 && errno == EINTR) continue;
         if(ret == 0 ) break;
 
@@ -51,21 +53,17 @@ size_t WriteSocket(int ds, char buf[], int n){
     return written_bytes;
 }
 
-int trovaPartner(char* username, client_info* list){
-    int j;
-    printf("%s", username);
-    printf("Entro nel for\n");
-    for (j = 0; j < MAX_USERS; j++){
-        printf("%d ", j);
-        if (strcmp(list[j].name, username)== 0){
-            printf("%s\n", list[j].name);
-            return j;
+int trovaPartner(char username[], client_info* list){
+    int i;
+    for (i = 0; i < MAX_USERS; i++){
+        if (strcmp(list[i].name, username)== 0){
+            return i;
         }
     }
     return -1;
 }
 
-/*void startChatSession(int socket,client_info* list, int pos, char username[]) {
+void startChatSession(int socket,client_info* list, int pos, char username[]) {
 
     int ret;
 
@@ -88,4 +86,4 @@ int trovaPartner(char* username, client_info* list){
     //devo inviare segnale a thread partner
     //PROSEGUI DA QUI
 
-}*/
+}

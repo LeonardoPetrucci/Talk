@@ -3,6 +3,8 @@
 #ifndef UTIL_CLIENT_SEMAPHORE_H
 #define UTIL_CLIENT_SEMAPHORE_H
 
+extern int sem_list;
+
 /*
  * Crea un semaforo.
  */

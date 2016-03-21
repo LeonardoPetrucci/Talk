@@ -10,12 +10,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 #include <assert.h>
 
 #include "macros.h"
 #include "structs.h"
 #include "messages.h"
 #include "threads.h"
+#include "semaphore.h"
+#include "commands.h"
 
 int main(char argc, char* argv[]){
     //declaration of server elements
@@ -36,7 +39,6 @@ int main(char argc, char* argv[]){
     //Initializing connected client list
     int i;
     for(i = 0; i < MAX_USERS; i++) {
-        list[i].name = (char*)malloc(MAX_NAME_LENGTH* sizeof(char));
         list[i].sock = -1;
     }
     //Initializing server elements
@@ -51,8 +53,8 @@ int main(char argc, char* argv[]){
         exit(EXIT_FAILURE);
     }
     //executing ifconfig operation using a child process
-    /*pid_t ifconfig, status;
-    ifconfig = fork();
+    pid_t ifconfig, status;
+    /*ifconfig = fork();
     if(ifconfig == -1) {
         printf("Error: cannot fork.\n");
         exit(EXIT_FAILURE);
@@ -70,6 +72,7 @@ int main(char argc, char* argv[]){
     printf("Server running...\n");
     //accept operation and connection management
     //signal(SIGINT, &killClient);
+
     while(1) {
         csock = accept(lsock, (struct sockaddr*)&caddr, &csize);
         if(csock < 0) {
@@ -86,7 +89,6 @@ int main(char argc, char* argv[]){
                 //pthread_t               ch;     //connection handler thread space
                 chargs_t                chdata = {list, csock, i}; //connection handler thread data
                 int                     chid = pthread_create(&list[i].chandler, NULL, _connection_handler, &chdata);
-                pthread_detach(list[i].chandler);
                 //ERROR_HELPER(chid, "ERROR: cannot create connection handler thread\n");
                 //spostare il thread nella struct del client?
                 break;
@@ -96,9 +98,9 @@ int main(char argc, char* argv[]){
             write(csock, NO_MORE_SPACE, strlen(NO_MORE_SPACE));
             close(csock);
         }
-        /*else {
-            pthread_detach(list[i].chandler, NULL);
-        }*/
+        else {
+            //pthread_join(list[i].chandler, NULL);
+        }
         free_space = 0;
     }
 }

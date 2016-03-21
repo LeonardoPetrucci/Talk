@@ -2,54 +2,34 @@
 // Created by Leonardo on 15/03/2016.
 //
 
-#ifndef TALK_CHAT_H
-#define TALK_CHAT_H
+#ifndef TALK_COMMANDS_H
+#define TALK_COMMANDS_H
+
+#define LIST            "$list"
+#define QUIT            "$quit"
+#define HELP            "$help"
+#define CONNECTION      "$conn"
+#define SIZE_CONNECTION 5
 
 #include "structs.h"
-/*
-	Read and return the number of bytes read from the socket
-*/
-size_t  ReadSocket(int ds, char buf[], int n);
-/*
-	Write and return the number of bytes written from the socket
-*/
-size_t  WriteSocket(int ds, char buf[], int n);
 
-// Funzione ausiliaria che trova dato lo username il partner per una chat_session
+#define ERROR_HELPER(ret, message) do{                              \
+    if (ret < 0){                                                   \
+        fprintf(stderr, "%s: %s\n", message, strerror(errno));      \
+        exit(EXIT_FAILURE);                                         \
+    }                                                               \
+} while(0)
 
-int trovaPartner(char username[], client_info* list);
+// Manage special command between client and server
 
-// Esegue tutte le operazioni preliminari per l'inizio di una chat session
+void cmdManagement(int sock, int pos, client_info* list);
 
-void startChatSession(int sock,client_info* list, int pos, char username[]);
+// It sends utents-connected-and-avalaible list. It returns the number of bytes sent.
 
-/*
- * Gestisce la chat_session tra due utenti. Avrà minimo due parametri in ingresso che sono le struct con le informazioni sugli user.
- *//*
-void chat_session(chat_args* args);
+void  sendList(int sock, client_info* list);  //ho eliminato il parametro lista, tanto è extern e la vede comunque
 
-/*
- * Inizializza la coda di messaggi per la chat_session corrente.Key unico nel sistema.
+// Manage closure and cleanup of resources
 
-int initialize_queue(int key);
+void close_and_cleanup(int sock, int pos, client_info* list);
 
-/*
- * Inserisce nella coda di messaggi un messaggio.
-
-int enqueue(char* nickname, char* msg);
-
-/*
- * Leva dalla coda un messaggio
-
-msg_t* dequeue();
-
-/*
- * Funzione thread. Routine che lancia dequeue
-
-void dequeue_routine();
-
-/*
- * Invia il messaggio tolto dalla coda al destinatario.
- */
-
-#endif //TALK_CHAT_H
+#endif //TALK_COMMANDS_H
