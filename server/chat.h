@@ -21,35 +21,18 @@ int trovaPartner(char username[], client_info* list);
 
 // Esegue tutte le operazioni preliminari per l'inizio di una chat session
 
-void startChatSession(int sock,client_info* list, int pos, char username[]);
+//void startChatSession(int sock,client_info* list, int pos, char username[]);
 
-/*
- * Gestisce la chat_session tra due utenti. Avrà minimo due parametri in ingresso che sono le struct con le informazioni sugli user.
- *//*
-void chat_session(chat_args* args);
 
-/*
- * Inizializza la coda di messaggi per la chat_session corrente.Key unico nel sistema.
 
-int initialize_queue(int key);
+void chat_session();
 
-/*
- * Inserisce nella coda di messaggi un messaggio.
+int initialize_queue(int key, int flag);
 
-int enqueue(char* nickname, char* msg);
-
-/*
- * Leva dalla coda un messaggio
+int enqueue(char* nickname, char* msg, int queue);
 
 msg_t* dequeue();
 
-/*
- * Funzione thread. Routine che lancia dequeue
-
 void dequeue_routine();
-
-/*
- * Invia il messaggio tolto dalla coda al destinatario.
- */
 
 #endif //TALK_CHAT_H
