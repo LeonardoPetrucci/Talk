@@ -14,7 +14,7 @@ typedef struct{
     int             msg_des;
 }client_info;
 //conntected client list
-//extern              client_info *list; //*list;
+extern              client_info *list; //*list;
 //connection handler thread arguments
 typedef struct {
     client_info*    l;
@@ -23,8 +23,8 @@ typedef struct {
 }chargs_t;
 
 typedef struct {
-    char* mittente;
-    long type;
-    char* messaggio;
+    char*           mittente;
+    long            type;
+    char*           messaggio;
 }msg_t;
 #endif //_STRUCTS_H

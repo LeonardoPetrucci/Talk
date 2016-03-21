@@ -8,13 +8,16 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/socket.h>
+#include <signal.h>
 
 #include "structs.h"
 #include "commands.h"
 #include "messages.h"
 #include "macros.h"
+#include "semaphore.h"
 #include "chat.h"
 
+int queue_key = 30;
 
 
 void close_and_cleanup(int sock, int pos, client_info* list){
@@ -34,6 +37,36 @@ void cmdManagement(int sock, int pos, client_info* list){
 
         ret = ReadSocket(sock, buf, MAX_MESSAGE_LENGTH);
         ERROR_HELPER(ret, "Error in reading from socket");
+
+        if (list[pos].available == 0) {
+            if (strcmp(buf,"y") == 0){
+
+                printf("ho passato");
+                int desc = open_semaphore(list[pos].sock,0);
+                ERROR_HELPER(desc, "error in opening semaphore");
+
+                ret = sem_signal(desc,0);
+                ERROR_HELPER(ret, "Error in sem_signal");
+
+                chat_session();
+            }
+
+            else if (strcmp(buf,"n") == 0){
+                list[pos].available = 1;
+                ret = send(list[pos].partner, list[pos].name,strlen(list[pos].name),0);
+                ERROR_HELPER(ret, "Error in sending username");
+
+                ret = send(list[pos].partner, REFUSE, strlen(REFUSE),0);
+                ERROR_HELPER(ret, "Error in sending REFUSE message");
+
+                list[pos].partner = -1;
+            }
+
+            else{
+                ret = send(list[pos].sock,PLEASE,strlen(PLEASE),0);
+                ERROR_HELPER(ret, "Error in sending PLEASE message");
+            }
+        }
 
         if (strcmp(buf, QUIT) == 0) {
             ret = send(sock, QUITMESS, strlen(QUITMESS), 0);
@@ -60,16 +93,48 @@ void cmdManagement(int sock, int pos, client_info* list){
 
             if( found >= 0) {
                 list[pos].available = 0;
-                char* connected1 = "Connected";
+                char* connected1 = "\n\nConnected\n";
                 ret = send(sock, connected1, strlen(connected1), 0);
                 list[pos].partner = list[found].sock;
+                list[pos].msg_des = initialize_queue(++queue_key,0);
 
-                char* connected2 = "Connected with ";
-                strcat(connected2, list[pos].name);
-                ret = send(list[found].sock, connected2, strlen(connected2), 0);
+                //SEWAIT
+
                 list[found].partner = list[pos].sock;
+                list[found].available = 0;
+                list[found].msg_des = initialize_queue(queue_key,1);
+
+                ret = send(list[found].sock, list[pos].name, strlen(list[pos].name), 0);
+                ERROR_HELPER(ret,"Error in sending the username");
+
+                ret = send(list[found].sock, ASKING,strlen(ASKING),0);
+                ERROR_HELPER(ret,"Error in sending ASKING message");
 
 
+                //SEMSIGNAL
+
+                int desc = open_semaphore(list[pos].sock,1);
+                ERROR_HELPER(desc, "Error in opening semaphore");
+
+                ret = set_semaphore(desc,0,0);
+                ERROR_HELPER(ret, "Errore nel setting del valore del semaforo");
+
+                ret = sem_wait(desc,0);
+                ERROR_HELPER(ret, "Error in sem_wait");
+
+                ret = remove_semaphore(desc);
+                ERROR_HELPER(ret, "fail in remove semaphore");
+
+                if (list[found].available == 1){
+                    list[pos].partner = -1;
+                    list[pos].available = 1;
+                }
+                else {
+                    chat_session();
+                }
+
+                //SEMWAIT -> SEMCHAT
+                //chat_session(pos, list);
             }
         }
 

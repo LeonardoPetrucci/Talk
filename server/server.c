@@ -72,7 +72,6 @@ int main(char argc, char* argv[]){
 
     //accept operation and connection management
     signal(SIGINT, killClient);
-    signal(SIGUSR1,_chat_signal);
 
     while(1) {
         csock = accept(lsock, (struct sockaddr*)&caddr, &csize);
