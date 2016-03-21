@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/socket.h>
 
 #include "structs.h"
 #include "commands.h"
@@ -46,8 +47,8 @@ void cmdManagement(int sock, int pos, client_info* list){
             ERROR_HELPER(ret, "Error in sending help message");
         }
 
-        else if (strncmp(buf, CONNECTION, SIZE_CONNECTION) == 0) {
-            ret = send(sock, CHOOSE, strlen(CHOOSE));
+        else if (strcmp(buf, CONNECTION) == 0) {
+            ret = send(sock, CHOOSE, strlen(CHOOSE),0);
             ERROR_HELPER(ret, "Error in sending choose message");
             printf("Prima read\n");
             ret = ReadSocket(sock, buf, strlen(buf));
@@ -79,7 +80,7 @@ void sendList(int sock, client_info* list){        //poi cambiare il tipo di rit
     for(i = 0; i < MAX_USERS; i++) {
         if(list[i].sock != sock && list[i].available) {
             //l'assunzione è che un client disponibile ha un nome già settato, dunque non viene fatto un controllo su come è stato riempito name, che si assume correttamente impostato dal thread relativo a tale client
-            send(sock, strcat(list[i].name, "\n"), strlen(list[i].name) + 1, 0);
+            send(sock, strcat(list[i].name, "\n"), strlen(list[i].name) + 1 , 0);
         }
     }
 }
