@@ -13,7 +13,7 @@
 
 int open_semaphore(key_t key, int numero){
     if (numero < 0) return -1;
-    return semget(key,numero, IPC_CREAT|0666);
+    return semget(key, numero, IPC_CREAT|0660);
 }
 
 int remove_semaphore(int sem_des){

@@ -13,6 +13,9 @@
 #define WAITFORCMD      "[MAIN ROOM] Command: "
 #define QUITMESS        "You are going to be disconnected. We hope to see you again!\n"
 #define INVALID         "Invalid command.\n"
-#define CHOOSE          "Insert the username you want to contact: "
-
+#define CHOOSE          "Insert the username you want to contact.La lista degli utenti disponibili e': \n"
+#define TRY_LATER       "The users you're trying to contact is at the moment not available. Try later!\n"
+#define ASKING          " would like to start chatting with you! Would you like to do the same?\nSay 'y' to start and 'n' to refuse\n"
+#define REFUSE          " refuse connection"
+#define PLEASE          "Please answer 'y' or 'n'\n"
 #endif

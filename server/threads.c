@@ -30,6 +30,9 @@ void* _connection_handler(void* args) {
     sock = chargs->sock;
     list = chargs->l;
 
+    sigset_t set;
+
+
     char    buffer[MAX_MESSAGE_LENGTH]; //buffer for communication
     int     bytes;      //read or written files from the buffer
     int     check = 0;  //flag for name setting
@@ -76,9 +79,10 @@ void* _connection_handler(void* args) {
 }
 
 void _chat_signal(){
+
     list[pos].available = 0;
-
-
+    printf("Segnale ricevuto");
+    chat_session(); //tua posizione e lista
 }
 
 void killClient() {
