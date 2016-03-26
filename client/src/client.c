@@ -1,12 +1,34 @@
 #include <WinSock2.h>
-#include <Windows.h>
+#include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <WS2tcpip.h>
-
+#include <wincon.h>
 #include "util_windows.h"
 
 #pragma comment(lib, "Ws2_32.lib")
+
+SOCKET connectionSocket;
+int chat = 0;
+
+void interruptManagement(DWORD fdwCtrlType) {
+	if (fdwCtrlType == CTRL_C_EVENT || fdwCtrlType == CTRL_BREAK_EVENT || fdwCtrlType == CTRL_CLOSE_EVENT || fdwCtrlType == CTRL_LOGOFF_EVENT || fdwCtrlType == CTRL_SHUTDOWN_EVENT) {
+		if(chat){
+			int ret = WriteSocket(connectionSocket, "$exit", 5);
+			ERROR_HELPER(ret, "Error in sending exit");
+		}
+		printf("\nA CTRL+C event was sent. I'm logging you off.\n");
+		int ret = WriteSocket(connectionSocket, "$quit", 5);
+		ERROR_HELPER(ret, "Error in sending $quit");
+
+		char buf[MAX_LENGTH];
+		ret = ReadSocket(connectionSocket, buf, MAX_LENGTH);
+		ERROR_HELPER(ret, "Error in recv quit message");
+
+		close_and_cleanup(connectionSocket);
+	}
+}
+
 
 int main(int argc, char* argv[]) {
 
@@ -20,7 +42,6 @@ int main(int argc, char* argv[]) {
 	
 	//connection variables
 	LPWSADATA data = { 0 };
-	SOCKET connectionSocket;
 	SOCKADDR_IN connectionInfo;
 
 	//starting connection to a server, using winsockets
@@ -34,6 +55,7 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+	
 	connectionSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (connectionSocket == INVALID_SOCKET) {
 		printf("ERROR: cannot complete socket operation\n");
@@ -56,6 +78,8 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+	SetConsoleCtrlHandler((PHANDLER_ROUTINE)interruptManagement, TRUE);
+
 	//Qui dovrei creare il nuovo thread che gestisce l' arrivo degli altri messaggi.
 
 	HANDLE thread = LaunchThread(&connectionSocket);
@@ -68,7 +92,7 @@ int main(int argc, char* argv[]) {
 	while (1) {
 
 		memset(buf, 0, MAX_LENGTH);
-		scanf_s("%s", buf, sizeof(buf));
+		gets_s(buf, sizeof(buf));
 		ret = WriteSocket(connectionSocket, buf, strlen(buf));
 		ERROR_HELPER(ret, "Errore nell' invio dal socket");
 		
@@ -90,11 +114,21 @@ HANDLE LaunchThread(int* ds) {
 	return hthread;
 }
 
+
 void ListenSocket(void * arg) {
 	char buf[MAX_LENGTH]; int *ds = (int*)arg;
 	while (1) {
 		int ret = ReadSocket(*ds, buf, MAX_LENGTH);
 		ERROR_HELPER(ret, "Errore nella read di ListenSocket");
+
+		if (strcmp("$chat", buf) == 0) {
+			chat = 1;
+			continue;
+		}
+		if (strcmp("$unchat", buf) == 0) {
+			chat = 0;
+			continue;
+		}
 
 		printf("%s", buf);
 		memset(buf, 0, MAX_LENGTH);

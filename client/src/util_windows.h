@@ -10,6 +10,8 @@
             }																		\
         } while (0)																	\
 
+//var that indicates if you are in chat or not
+extern int chat; 
 /*
 	util defines a sets of functions that can be used by server and client
 */
