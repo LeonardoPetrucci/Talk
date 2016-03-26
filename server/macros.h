@@ -10,6 +10,7 @@
 
 #define MAX_USERS           20
 #define MAX_MESSAGE_LENGTH  1024
+#define MAX_MESSAGE_CHAT    1024+4+MAX_NAME_LENGTH
 #define MAX_NAME_LENGTH     20
 
 #endif //TALKSERVER_MACROS_H

@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <signal.h>
+#include <sys/msg.h>
 
 #include "structs.h"
 #include "commands.h"
@@ -16,9 +17,6 @@
 #include "macros.h"
 #include "semaphore.h"
 #include "chat.h"
-
-int queue_key = 30;
-
 
 void close_and_cleanup(int sock, int pos, client_info* list){
     close(sock);
@@ -32,6 +30,7 @@ void cmdManagement(int sock, int pos, client_info* list){
     char    buf[MAX_MESSAGE_LENGTH];
 
     while (1) {
+        memset(&buf,0 ,sizeof(buf));
         ret = send(sock, WAITFORCMD, strlen(WAITFORCMD), 0);
         ERROR_HELPER(ret, "Error in sending WAITFORCMD");
 
@@ -39,27 +38,44 @@ void cmdManagement(int sock, int pos, client_info* list){
         ERROR_HELPER(ret, "Error in reading from socket");
 
         if (list[pos].available == 0) {
-            if (strcmp(buf,"y") == 0){
+            if (*buf == 'y'){
 
-                printf("ho passato");
-                int desc = open_semaphore(list[pos].sock,0);
-                ERROR_HELPER(desc, "error in opening semaphore");
-
-                ret = sem_signal(desc,0);
+                ret = sem_signal(list[pos].sem_des,0);
                 ERROR_HELPER(ret, "Error in sem_signal");
 
-                chat_session();
+                /*
+                 * sending this message i notify the client that i'm in chat session
+                 */
+                ret = send(list[pos].sock,"$chat",5,0);
+                ERROR_HELPER(ret, "Error in sending chat");
+
+                chat_session(pos, list);
+
+                ret = send(list[pos].sock,"$unchat",7,0);
+                ERROR_HELPER(ret, "Error in sending unchat");
+
+
+                ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
+                list[list[pos].partner[1]].partner[0] = -1;
+                ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_wait");
+
+                list[pos].partner[0] = -1;
+                list[pos].partner[1] = -1;
+                list[pos].available= 1;
             }
 
-            else if (strcmp(buf,"n") == 0){
+            else if (*buf =='n'){
                 list[pos].available = 1;
-                ret = send(list[pos].partner, list[pos].name,strlen(list[pos].name),0);
+                ret = send(list[pos].partner[0], list[pos].name,strlen(list[pos].name),0);
                 ERROR_HELPER(ret, "Error in sending username");
 
-                ret = send(list[pos].partner, REFUSE, strlen(REFUSE),0);
+                ret = send(list[pos].partner[0], REFUSE, strlen(REFUSE),0);
                 ERROR_HELPER(ret, "Error in sending REFUSE message");
 
-                list[pos].partner = -1;
+                list[pos].partner[0] = -1;
+
+                ret = sem_signal(list[pos].sem_des,0);
+                ERROR_HELPER(ret, "Error in sem_signal");
             }
 
             else{
@@ -75,7 +91,12 @@ void cmdManagement(int sock, int pos, client_info* list){
         }
 
         else if (strcmp(buf, LIST) == 0) {
-            sendList(sock, list);
+            ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
+            if(sendList(sock,list) <= 0) {
+                ret = send(sock, NOBODY, strlen(NOBODY), 0);
+                ERROR_HELPER(ret, "Errore in sending nobody message");
+            }
+            ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_wait");
         }
 
         else if (strcmp(buf, HELP) == 0) {
@@ -84,25 +105,34 @@ void cmdManagement(int sock, int pos, client_info* list){
         }
 
         else if (strcmp(buf, CONNECTION) == 0) {
+            int sendResult;
+            ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
+            sendResult = (sendList(sock,list));
+            ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
+            if(sendResult <= 0) {
+                continue;
+            }
+            ret = ReadSocket(sock, buf, strlen(buf));
+
             ret = send(sock, CHOOSE, strlen(CHOOSE),0);
             ERROR_HELPER(ret, "Error in sending choose message");
-            sendList(sock,list);
 
-            ret = ReadSocket(sock, buf, strlen(buf));
+            ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
             int found = trovaPartner(buf, list);
+            ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
 
             if( found >= 0) {
                 list[pos].available = 0;
-                char* connected1 = "\n\nConnected\n";
-                ret = send(sock, connected1, strlen(connected1), 0);
-                list[pos].partner = list[found].sock;
-                list[pos].msg_des = initialize_queue(++queue_key,0);
+                list[pos].partner[0] = list[found].sock;
+                list[pos].partner[1] = found;
 
-                //SEWAIT
-
-                list[found].partner = list[pos].sock;
+                //SEWAIT - RACECONDITION
+                ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
+                list[found].partner[0] = list[pos].sock;
+                list[found].partner[1] = pos;
                 list[found].available = 0;
-                list[found].msg_des = initialize_queue(queue_key,1);
+                ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
+                //SEMSIGNAL
 
                 ret = send(list[found].sock, list[pos].name, strlen(list[pos].name), 0);
                 ERROR_HELPER(ret,"Error in sending the username");
@@ -111,41 +141,64 @@ void cmdManagement(int sock, int pos, client_info* list){
                 ERROR_HELPER(ret,"Error in sending ASKING message");
 
 
-                //SEMSIGNAL
-
                 int desc = open_semaphore(list[pos].sock,1);
                 ERROR_HELPER(desc, "Error in opening semaphore");
 
                 ret = set_semaphore(desc,0,0);
                 ERROR_HELPER(ret, "Errore nel setting del valore del semaforo");
 
+                list[found].sem_des = desc;
+
                 ret = sem_wait(desc,0);
                 ERROR_HELPER(ret, "Error in sem_wait");
 
                 ret = remove_semaphore(desc);
-                ERROR_HELPER(ret, "fail in remove semaphore");
+                ERROR_HELPER(ret, "fail in remove semaphore\n");
+
+                list[found].sem_des = 0;
 
                 if (list[found].available == 1){
-                    list[pos].partner = -1;
+                    list[pos].partner[0] = -1;
+                    list[pos].partner[1] = -1;
                     list[pos].available = 1;
                 }
                 else {
-                    chat_session();
-                }
+                    /*
+                     * sending this message i notify the client that i'm in chat session
+                     */
+                    ret = send(list[pos].sock,"$chat",5,0);
+                    ERROR_HELPER(ret, "Error in sending chat");
 
-                //SEMWAIT -> SEMCHAT
-                //chat_session(pos, list);
+                    chat_session(pos, list);
+
+                    ret = send(list[pos].sock,"$unchat",7,0);
+                    ERROR_HELPER(ret, "Error in sending unchat");
+
+                    ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
+                    list[found].partner[0] = -1;
+                    ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
+
+                    list[pos].partner[0] = -1;
+                    list[pos].partner[1] = -1;
+                    list[pos].available = 1;
+                }
+            }
+            else {
+                ret = send(list[pos].sock, NOT_FOUND, strlen(NOT_FOUND), 0);
+                ERROR_HELPER(ret, "Error in sending notfound message");
             }
         }
 
         else {
+            ret = send(list[pos].sock, INVALID, strlen(INVALID), 0);
+            ERROR_HELPER(ret, "Error in sending INVALID command");
         }
 
     }
 }
 
-void sendList(int sock, client_info* list){        //poi cambiare il tipo di ritorno per far restituire qualcosa di gestibile
-
+int sendList(int sock, client_info* list){        //poi cambiare il tipo di ritorno per far restituire qualcosa di gestibile
+    int somebody = 0;
     int i;
     for(i = 0; i < MAX_USERS; i++) {
         if(list[i].sock != sock && list[i].available) {
@@ -154,7 +207,9 @@ void sendList(int sock, client_info* list){        //poi cambiare il tipo di rit
             ERROR_HELPER(ret, "Errore in sending list");
             ret = send(sock, "\n", 1, 0);
             ERROR_HELPER(ret, "Errore in sending the new line");
+            somebody++;
         }
     }
+    return somebody;
 }
 
