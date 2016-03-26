@@ -99,9 +99,6 @@ int main(char argc, char* argv[]){
             write(csock, NO_MORE_SPACE, strlen(NO_MORE_SPACE));
             close(csock);
         }
-        /*else {
-            pthread_detach(list[i].chandler, NULL);
-        }*/
         free_space = 0;
     }
 }

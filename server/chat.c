@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "chat.h"
 #include "structs.h"
@@ -40,22 +41,22 @@ size_t ReadSocket(int ds, char buf[], int n){
 
 size_t WriteSocket(int ds, char buf[], int n){
     size_t written_bytes = 0; int ret;
-    while(written_bytes <= n){
-
-        ret = send(ds,buf + written_bytes,n,0);
-        if (ret == -1 && errno == EINTR) continue;
+    while (1) {
+        ret = send(ds, buf + written_bytes, n, 0);
+        ERROR_HELPER(ret, "Error in send in WriteSocket");
         if (ret == 0) break;
 
         written_bytes += ret;
-        n -= ret;
+        buf[written_bytes] = '\n';
+        n -= written_bytes;
     }
+
     return written_bytes;
 }
 
 int trovaPartner(char* username, client_info* list){
     int j;
     for (j = 0; j < MAX_USERS; j++){
-        printf("%d ", j);
         if (strcmp(list[j].name, username)== 0){
             return j;
         }
@@ -63,7 +64,47 @@ int trovaPartner(char* username, client_info* list){
     return -1;
 }
 
-void chat_session() {
-    printf("sono in chat session!");
+void chat_session(int pos, client_info* list) {
 
+    char* ch = "\n\n- Now you're in chat! Puts '$exit' to go away.\n";
+    int ret = send(list[pos].sock,ch,strlen(ch),0);
+    ERROR_HELPER(ret,"Error in sending message");
+
+    char buf[MAX_MESSAGE_LENGTH];
+    char messaggio_chat[MAX_MESSAGE_CHAT];
+    memset(buf,0,MAX_MESSAGE_LENGTH);
+    memset(messaggio_chat,0,MAX_MESSAGE_CHAT);
+
+    while (1){
+
+        ret = recv(list[pos].sock,buf,MAX_MESSAGE_LENGTH,0);
+        ERROR_HELPER(ret,"Errore nella read socket");
+
+        printf("%d",ret);
+
+        if(list[pos].partner[0] < 0) break;
+
+        if (strcmp(buf, "$exit") == 0) {
+            ret = send(list[pos].partner[0],list[pos].name,strlen(list[pos].name),0);
+            ERROR_HELPER(ret, "Error in sending the name");
+            ret = send(list[pos].partner[0],END_CHAT,strlen(END_CHAT),0);
+            ERROR_HELPER(ret, "Error in sending END_CHAT");
+            break;
+        }
+        //printf("Ho ricevuto %s\n",buf);
+        strcat(messaggio_chat,"[");
+        strcat(messaggio_chat,list[pos].name);
+        strcat(messaggio_chat, "]: ");
+        strcat(messaggio_chat, buf);
+        strcat(messaggio_chat, "\n");
+
+
+        ret = send(list[pos].partner[0], messaggio_chat, MAX_MESSAGE_CHAT,0);
+        ERROR_HELPER(ret, "Error in sending message_chat");
+
+        memset(buf,0,MAX_MESSAGE_LENGTH);
+        memset(messaggio_chat,0,MAX_MESSAGE_CHAT);
+
+    }
 }
+

@@ -6,6 +6,7 @@
 #define _MESSAGES_H
 
 #define NO_MORE_SPACE   "Sorry, there is no more space in the chat room. See you later!\n"
+#define KILL_CLIENT     "The server is no more available. Please try later!\n"
 #define WELCOME         "Welcome to the chat room!!!\n"
 #define SET_NAME        "Set a valid username (max 20 characters).\nUSERNAME: "
 #define READY           "You are in the main room.\nHere you can:\n-choose a partner from the list below typing $conn USERNAME, where USERNAME means the chosen partner's name\n-quit this session typing $quit\n-Ask for other commands tyiping $help\n"
@@ -18,4 +19,5 @@
 #define ASKING          " would like to start chatting with you! Would you like to do the same?\nSay 'y' to start and 'n' to refuse\n"
 #define REFUSE          " refuse connection"
 #define PLEASE          "Please answer 'y' or 'n'\n"
+#define END_CHAT        " has gone. Press enter to continue\n"
 #endif

@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <signal.h>
+#include <sys/msg.h>
 
 #include "structs.h"
 #include "commands.h"
@@ -39,27 +40,31 @@ void cmdManagement(int sock, int pos, client_info* list){
         ERROR_HELPER(ret, "Error in reading from socket");
 
         if (list[pos].available == 0) {
-            if (strcmp(buf,"y") == 0){
+            if (*buf == 'y'){
 
-                printf("ho passato");
-                int desc = open_semaphore(list[pos].sock,0);
-                ERROR_HELPER(desc, "error in opening semaphore");
-
-                ret = sem_signal(desc,0);
+                ret = sem_signal(list[pos].sem_des,0);
                 ERROR_HELPER(ret, "Error in sem_signal");
 
-                chat_session();
+                chat_session(pos, list);
+
+                list[list[pos].partner[1]].partner[0] = -1;
+                list[pos].partner[0] = -1;
+                list[pos].partner[1] = -1;
+                list[pos].available= 1;
             }
 
-            else if (strcmp(buf,"n") == 0){
+            else if (*buf =='n'){
                 list[pos].available = 1;
-                ret = send(list[pos].partner, list[pos].name,strlen(list[pos].name),0);
+                ret = send(list[pos].partner[0], list[pos].name,strlen(list[pos].name),0);
                 ERROR_HELPER(ret, "Error in sending username");
 
-                ret = send(list[pos].partner, REFUSE, strlen(REFUSE),0);
+                ret = send(list[pos].partner[0], REFUSE, strlen(REFUSE),0);
                 ERROR_HELPER(ret, "Error in sending REFUSE message");
 
-                list[pos].partner = -1;
+                list[pos].partner[0] = -1;
+
+                ret = sem_signal(list[pos].sem_des,0);
+                ERROR_HELPER(ret, "Error in sem_signal");
             }
 
             else{
@@ -93,16 +98,15 @@ void cmdManagement(int sock, int pos, client_info* list){
 
             if( found >= 0) {
                 list[pos].available = 0;
-                char* connected1 = "\n\nConnected\n";
-                ret = send(sock, connected1, strlen(connected1), 0);
-                list[pos].partner = list[found].sock;
-                list[pos].msg_des = initialize_queue(++queue_key,0);
+                list[pos].partner[0] = list[found].sock;
+                list[pos].partner[1] = found;
 
-                //SEWAIT
+                //SEWAIT - RACECONDITION
 
-                list[found].partner = list[pos].sock;
+                list[found].partner[0] = list[pos].sock;
+                list[found].partner[1] = pos;
                 list[found].available = 0;
-                list[found].msg_des = initialize_queue(queue_key,1);
+
 
                 ret = send(list[found].sock, list[pos].name, strlen(list[pos].name), 0);
                 ERROR_HELPER(ret,"Error in sending the username");
@@ -119,22 +123,29 @@ void cmdManagement(int sock, int pos, client_info* list){
                 ret = set_semaphore(desc,0,0);
                 ERROR_HELPER(ret, "Errore nel setting del valore del semaforo");
 
+                list[found].sem_des = desc;
+
                 ret = sem_wait(desc,0);
                 ERROR_HELPER(ret, "Error in sem_wait");
 
                 ret = remove_semaphore(desc);
-                ERROR_HELPER(ret, "fail in remove semaphore");
+                ERROR_HELPER(ret, "fail in remove semaphore\n");
+
+                list[found].sem_des = 0;
 
                 if (list[found].available == 1){
-                    list[pos].partner = -1;
+                    list[pos].partner[0] = -1;
+                    list[pos].partner[1] = -1;
                     list[pos].available = 1;
                 }
                 else {
-                    chat_session();
-                }
+                    chat_session(pos, list);
 
-                //SEMWAIT -> SEMCHAT
-                //chat_session(pos, list);
+                    list[found].partner[0] = -1;
+                    list[pos].partner[0] = -1;
+                    list[pos].partner[1] = -1;
+                    list[pos].available = 1;
+                }
             }
         }
 

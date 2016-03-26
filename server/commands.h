@@ -5,6 +5,8 @@
 #ifndef TALK_COMMANDS_H
 #define TALK_COMMANDS_H
 
+#include "structs.h"
+
 #define LIST            "$list"
 #define QUIT            "$quit"
 #define HELP            "$help"

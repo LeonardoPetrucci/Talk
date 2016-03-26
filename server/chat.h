@@ -19,20 +19,14 @@ size_t  WriteSocket(int ds, char buf[], int n);
 
 int trovaPartner(char username[], client_info* list);
 
-// Esegue tutte le operazioni preliminari per l'inizio di una chat session
-
-//void startChatSession(int sock,client_info* list, int pos, char username[]);
-
-
-
-void chat_session();
+void chat_session(int pos, client_info* list);
 
 int initialize_queue(int key, int flag);
 
-int enqueue(char* nickname, char* msg, int queue);
+int enqueue(char* nickname, char* msg, int queue, int destinatario);
 
-msg_t* dequeue();
+msg_t* dequeue(int queue);
 
-void dequeue_routine();
+void dequeue_routine(int* queue);
 
 #endif //TALK_CHAT_H
