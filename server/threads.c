@@ -17,8 +17,9 @@
 #include "commands.h"
 #include "semaphore.h"
 
-
 client_info* list;
+int list_sem;
+
 //connection handler thread
 void* _connection_handler(void* args) {
     chargs_t* chargs = (chargs_t*) args;
@@ -38,10 +39,13 @@ void* _connection_handler(void* args) {
 
     list[pos].name = (char*)malloc(MAX_NAME_LENGTH * sizeof(char));
     list[pos].sock = sock;
+    //setto questa variabile globale, che indica il descrittore del sem sulla lista, in modo che sia visibile da killClient e killServer
+    list_sem = list[pos].list_sem;
 
     while(!check) {
         send(sock, SET_NAME, strlen(SET_NAME), 0);
         bytes = ReadSocket(sock, buffer, MAX_MESSAGE_LENGTH);
+        //if buffer è ctrl c invia quit
 
         if(bytes > 0) {
             check = 1;
@@ -51,6 +55,13 @@ void* _connection_handler(void* args) {
             list[pos].sock = -1;
             pthread_exit(0);
         }
+
+        if (strcmp(buffer,"$quit") == 0){
+            close(sock);
+            list[pos].sock = -1;
+            pthread_exit(0);
+        }
+
         int i;
         for(i = 0; i < MAX_USERS; i++) {
             if(i != pos && list[i].sock > 0) {
@@ -73,28 +84,41 @@ void* _connection_handler(void* args) {
     }
     //Connection setup complete. Now this threads becomes the command listener for the specified client
     send(sock, READY, strlen(READY), 0);
+
+    //RACE CONDITION
+    ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait,lista");
+
     sendList(sock, list);
+
+    ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_wait");
+    //Fine RACE CONDITION
+
     cmdManagement(sock, pos, list);
 }
-/*
-void _chat_signal(){
 
-    list[pos].available = 0;
-    printf("Segnale ricevuto");
-    chat_session(); //tua posizione e lista
-}
-*/
 void killClient() {
     int i,ret;
-
     for(i = 0; i < MAX_USERS; i++) {
-        printf("%d\n",i);
         if (list[i].sock != -1) {
-            ret = WriteSocket(list[i].sock, KILL_CLIENT, strlen(KILL_CLIENT));
+            ret = send(list[i].sock, KILL_CLIENT, strlen(KILL_CLIENT),0);
             ERROR_HELPER(ret, "Error in sending KILL_CLIENT message");
+
+            ret = remove_semaphore(list_sem);
+            ERROR_HELPER(ret, "error in remove semaphore");
+
             close_and_cleanup(list[i].sock, i, list);
         }
     }
     printf("Server stopped.\n");
+    exit(EXIT_SUCCESS);
+}
+
+void killServer() {
+    free(list);
+
+    //int ret = remove_semaphore(list_sem);
+    //ERROR_HELPER(ret, "error in remove semaphore");
+
+    printf("\nServer stopped");
     exit(EXIT_SUCCESS);
 }

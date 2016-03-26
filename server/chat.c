@@ -91,6 +91,8 @@ void chat_session(int pos, client_info* list) {
             ERROR_HELPER(ret, "Error in sending END_CHAT");
             break;
         }
+
+
         //printf("Ho ricevuto %s\n",buf);
         strcat(messaggio_chat,"[");
         strcat(messaggio_chat,list[pos].name);

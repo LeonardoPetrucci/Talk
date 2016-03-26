@@ -18,9 +18,6 @@
 #include "semaphore.h"
 #include "chat.h"
 
-int queue_key = 30;
-
-
 void close_and_cleanup(int sock, int pos, client_info* list){
     close(sock);
     memset(&list[pos], 0, sizeof(client_info));
@@ -45,9 +42,22 @@ void cmdManagement(int sock, int pos, client_info* list){
                 ret = sem_signal(list[pos].sem_des,0);
                 ERROR_HELPER(ret, "Error in sem_signal");
 
+                /*
+                 * sending this message i notify the client that i'm in chat session
+                 */
+                ret = send(list[pos].sock,"$chat",5,0);
+                ERROR_HELPER(ret, "Error in sending chat");
+
                 chat_session(pos, list);
 
+                ret = send(list[pos].sock,"$unchat",7,0);
+                ERROR_HELPER(ret, "Error in sending unchat");
+
+
+                ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
                 list[list[pos].partner[1]].partner[0] = -1;
+                ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_wait");
+
                 list[pos].partner[0] = -1;
                 list[pos].partner[1] = -1;
                 list[pos].available= 1;
@@ -80,7 +90,9 @@ void cmdManagement(int sock, int pos, client_info* list){
         }
 
         else if (strcmp(buf, LIST) == 0) {
+            ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
             sendList(sock, list);
+            ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_wait");
         }
 
         else if (strcmp(buf, HELP) == 0) {
@@ -91,10 +103,16 @@ void cmdManagement(int sock, int pos, client_info* list){
         else if (strcmp(buf, CONNECTION) == 0) {
             ret = send(sock, CHOOSE, strlen(CHOOSE),0);
             ERROR_HELPER(ret, "Error in sending choose message");
+
+            ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
             sendList(sock,list);
+            ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
 
             ret = ReadSocket(sock, buf, strlen(buf));
+
+            ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
             int found = trovaPartner(buf, list);
+            ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
 
             if( found >= 0) {
                 list[pos].available = 0;
@@ -102,11 +120,12 @@ void cmdManagement(int sock, int pos, client_info* list){
                 list[pos].partner[1] = found;
 
                 //SEWAIT - RACECONDITION
-
+                ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
                 list[found].partner[0] = list[pos].sock;
                 list[found].partner[1] = pos;
                 list[found].available = 0;
-
+                ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
+                //SEMSIGNAL
 
                 ret = send(list[found].sock, list[pos].name, strlen(list[pos].name), 0);
                 ERROR_HELPER(ret,"Error in sending the username");
@@ -114,8 +133,6 @@ void cmdManagement(int sock, int pos, client_info* list){
                 ret = send(list[found].sock, ASKING,strlen(ASKING),0);
                 ERROR_HELPER(ret,"Error in sending ASKING message");
 
-
-                //SEMSIGNAL
 
                 int desc = open_semaphore(list[pos].sock,1);
                 ERROR_HELPER(desc, "Error in opening semaphore");
@@ -139,9 +156,21 @@ void cmdManagement(int sock, int pos, client_info* list){
                     list[pos].available = 1;
                 }
                 else {
+                    /*
+                     * sending this message i notify the client that i'm in chat session
+                     */
+                    ret = send(list[pos].sock,"$chat",5,0);
+                    ERROR_HELPER(ret, "Error in sending chat");
+
                     chat_session(pos, list);
 
+                    ret = send(list[pos].sock,"$unchat",7,0);
+                    ERROR_HELPER(ret, "Error in sending unchat");
+
+                    ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
                     list[found].partner[0] = -1;
+                    ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
+
                     list[pos].partner[0] = -1;
                     list[pos].partner[1] = -1;
                     list[pos].available = 1;

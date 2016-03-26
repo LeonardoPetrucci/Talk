@@ -14,9 +14,11 @@ typedef struct{
     int             available;                  //availability flag, used for initializing a chat session
     pthread_t       chandler;                         //connection handler thread
     int             sem_des;
+    int             list_sem;                   //desc on list semaphore
 }client_info;
 //conntected client list
 extern              client_info *list; //*list;
+//extern              int list_sem;
 //connection handler thread arguments
 typedef struct {
     client_info*    l;
