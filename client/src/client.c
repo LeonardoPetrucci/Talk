@@ -17,13 +17,16 @@ void interruptManagement(DWORD fdwCtrlType) {
 			int ret = WriteSocket(connectionSocket, "$exit", 5);
 			ERROR_HELPER(ret, "Error in sending exit");
 		}
-		printf("\nA CTRL+C event was sent. I'm logging you off.\n");
-		int ret = WriteSocket(connectionSocket, "$quit", 5);
-		ERROR_HELPER(ret, "Error in sending $quit");
 
-		char buf[MAX_LENGTH];
-		ret = ReadSocket(connectionSocket, buf, MAX_LENGTH);
-		ERROR_HELPER(ret, "Error in recv quit message");
+		if (connectionSocket > 0) {
+			printf("\nA CTRL+C event was sent. I'm logging you off.\n");
+			int ret = WriteSocket(connectionSocket, "$quit", 5);
+			ERROR_HELPER(ret, "Error in sending $quit");
+
+			char buf[MAX_LENGTH];
+			ret = ReadSocket(connectionSocket, buf, MAX_LENGTH);
+			ERROR_HELPER(ret, "Error in recv quit message");
+		}
 
 		close_and_cleanup(connectionSocket);
 	}
@@ -85,7 +88,7 @@ int main(int argc, char* argv[]) {
 	HANDLE thread = LaunchThread(&connectionSocket);
 
 	char buf[MAX_LENGTH];
-	int  ret = ReadSocket(connectionSocket, buf, MAX_LENGTH);
+	int ret = ReadSocket(connectionSocket, buf, MAX_LENGTH);
 	ERROR_HELPER(ret, "Errore nella ricezione del messaggio di errore");
 	printf("%s", buf);
 	
@@ -93,6 +96,7 @@ int main(int argc, char* argv[]) {
 
 		memset(buf, 0, MAX_LENGTH);
 		gets_s(buf, sizeof(buf));
+
 		ret = WriteSocket(connectionSocket, buf, strlen(buf));
 		ERROR_HELPER(ret, "Errore nell' invio dal socket");
 		
@@ -118,8 +122,16 @@ HANDLE LaunchThread(int* ds) {
 void ListenSocket(void * arg) {
 	char buf[MAX_LENGTH]; int *ds = (int*)arg;
 	while (1) {
+		
 		int ret = ReadSocket(*ds, buf, MAX_LENGTH);
 		ERROR_HELPER(ret, "Errore nella read di ListenSocket");
+
+		
+		if (ret < 0) {
+			printf("errore nel kill timer\n");
+			close_and_cleanup(*ds);
+		}
+		
 
 		if (strcmp("$chat", buf) == 0) {
 			chat = 1;
