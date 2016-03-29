@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 #include "macros.h"
 #include "structs.h"
@@ -28,6 +29,8 @@ int main(char argc, char* argv[]){
     signal(SIGQUIT,killServer);
     signal(SIGKILL,killServer);
     signal(SIGTERM,killServer);
+    signal(SIGILL, killServer);
+
     //declaration of server elements
     client_info*            list;
     int                     lsock;  //listening socket
@@ -67,7 +70,7 @@ int main(char argc, char* argv[]){
         exit(EXIT_FAILURE);
     }
     //executing ifconfig operation using a child process
-    /*pid_t ifconfig, status;
+    pid_t ifconfig;
     ifconfig = fork();
     if(ifconfig == -1) {
         printf("Error: cannot fork.\n");
@@ -75,55 +78,51 @@ int main(char argc, char* argv[]){
     }
     if(ifconfig == 0) {
         //chiamo la exec su ifconfig
-        execl("ifconfig", "ifconfig", 0);
+        execl("/sbin/ifconfig", "ifconfig", 0);
         printf("ERROR: cannot complete ifconfig operation.\n");
     }
     else {
-        wait(&status);
-    }*/
-    //listen operation
-    listen(lsock, MAX_CONNECTIONS);
-    printf("Server running...\n");
-
-    //accept operation and connection management
-
-
-    while(1) {
-        csock = accept(lsock, (struct sockaddr*)&caddr, &csize);
-        if(csock < 0) {
-            printf("ERROR on accept operation");
-            exit(EXIT_FAILURE);
-        }
-        //Checking space in the connection list, if not, client disconnected
-        int free_space = 0;
-        int i;
-        for(i = 0; i < MAX_USERS; i++) {
-            if(list[i].sock < 0) {
-                free_space = 1;
-                //initializing thread and thread data space
-                //pthread_t               ch;     //connection handler thread space
-                chargs_t                chdata = {list, csock, i}; //connection handler thread data
-                int                     chid = pthread_create(&list[i].chandler, NULL, _connection_handler, &chdata);
-
-
-                signal(SIGINT,killClient);
-                signal(SIGHUP,killClient);
-                signal(SIGQUIT,killClient);
-                signal(SIGKILL,killClient);
-                signal(SIGTERM,killClient);
-
-                pthread_detach(list[i].chandler);
-                //ERROR_HELPER(chid, "ERROR: cannot create connection handler thread\n");
-                //spostare il thread nella struct del client?
-                break;
-            }
-        }
-        if(free_space == 0) {
-            write(csock, NO_MORE_SPACE, strlen(NO_MORE_SPACE));
-            close(csock);
-        }
-        free_space = 0;
+        wait(&ifconfig);
     }
+        //listen operation
+        listen(lsock, MAX_CONNECTIONS);
+        printf("Server running...\n");
 
+        //accept operation and connection management
+        while (1) {
+            csock = accept(lsock, (struct sockaddr *) &caddr, &csize);
+            if (csock < 0) {
+                ERROR_HELPER(csock, "Errore nella accept");
+            }
+            //Checking space in the connection list, if not, client disconnected
+            int free_space = 0;
+            int i;
+
+            for (i = 0; i < MAX_USERS; i++) {
+                if (list[i].sock < 0) {
+                    free_space = 1;
+                    //initializing thread and thread data space
+                    //pthread_t               ch;     //connection handler thread space
+                    chargs_t chdata = {list, csock, i}; //connection handler thread data
+                    int chid = pthread_create(&list[i].chandler, NULL, _connection_handler, &chdata);
+                    signal(SIGINT, killClient);
+                    signal(SIGHUP, killClient);
+                    signal(SIGQUIT, killClient);
+                    signal(SIGKILL, killClient);
+                    signal(SIGTERM, killClient);
+                    signal(SIGILL, killClient);
+
+                    pthread_detach(list[i].chandler);
+                    //ERROR_HELPER(chid, "ERROR: cannot create connection handler thread\n");
+                    //spostare il thread nella struct del client?
+                    break;
+                }
+            }
+            if (free_space == 0) {
+                write(csock, NO_MORE_SPACE, strlen(NO_MORE_SPACE));
+                close(csock);
+            }
+            free_space = 0;
+        }
 
 }

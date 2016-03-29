@@ -30,10 +30,17 @@ void cmdManagement(int sock, int pos, client_info* list){
     char    buf[MAX_MESSAGE_LENGTH];
 
     while (1) {
-        ret = send(sock, WAITFORCMD, strlen(WAITFORCMD), 0);
+        memset(&buf,0 ,sizeof(buf));
+        ret = WriteSocket(sock, WAITFORCMD, strlen(WAITFORCMD));
         ERROR_HELPER(ret, "Error in sending WAITFORCMD");
 
         ret = ReadSocket(sock, buf, MAX_MESSAGE_LENGTH);
+
+        if (errno == EAGAIN){
+            ret = WriteSocket(sock,"Timeout\n",8);
+            ERROR_HELPER(ret,"Error in sending Timeout");
+            close_and_cleanup(sock,pos,list);
+        }
         ERROR_HELPER(ret, "Error in reading from socket");
 
         if (list[pos].available == 0) {
@@ -45,12 +52,12 @@ void cmdManagement(int sock, int pos, client_info* list){
                 /*
                  * sending this message i notify the client that i'm in chat session
                  */
-                ret = send(list[pos].sock,"$chat",5,0);
+                ret = WriteSocket(list[pos].sock,"$chat",5);
                 ERROR_HELPER(ret, "Error in sending chat");
 
                 chat_session(pos, list);
 
-                ret = send(list[pos].sock,"$unchat",7,0);
+                ret = WriteSocket(list[pos].sock,"$unchat",7);
                 ERROR_HELPER(ret, "Error in sending unchat");
 
 
@@ -65,10 +72,10 @@ void cmdManagement(int sock, int pos, client_info* list){
 
             else if (*buf =='n'){
                 list[pos].available = 1;
-                ret = send(list[pos].partner[0], list[pos].name,strlen(list[pos].name),0);
+                ret = WriteSocket(list[pos].partner[0], list[pos].name,strlen(list[pos].name));
                 ERROR_HELPER(ret, "Error in sending username");
 
-                ret = send(list[pos].partner[0], REFUSE, strlen(REFUSE),0);
+                ret = WriteSocket(list[pos].partner[0], REFUSE, strlen(REFUSE));
                 ERROR_HELPER(ret, "Error in sending REFUSE message");
 
                 list[pos].partner[0] = -1;
@@ -78,38 +85,53 @@ void cmdManagement(int sock, int pos, client_info* list){
             }
 
             else{
-                ret = send(list[pos].sock,PLEASE,strlen(PLEASE),0);
+                ret = WriteSocket(list[pos].sock,PLEASE,strlen(PLEASE));
                 ERROR_HELPER(ret, "Error in sending PLEASE message");
             }
         }
 
         if (strcmp(buf, QUIT) == 0) {
-            ret = send(sock, QUITMESS, strlen(QUITMESS), 0);
+            ret = WriteSocket(sock, QUITMESS, strlen(QUITMESS));
             ERROR_HELPER(ret, "Error in sending quit_message");
             close_and_cleanup(sock, pos, list);
         }
 
         else if (strcmp(buf, LIST) == 0) {
             ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
-            sendList(sock, list);
+            if(sendList(sock,list) <= 0) {
+                ret = WriteSocket(sock, NOBODY, strlen(NOBODY));
+                ERROR_HELPER(ret, "Errore in sending nobody message");
+            }
             ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_wait");
         }
 
         else if (strcmp(buf, HELP) == 0) {
-            ret = send(sock, HELPMESSAGE, strlen(HELPMESSAGE), 0);
+            ret = WriteSocket(sock, HELPMESSAGE, strlen(HELPMESSAGE));
             ERROR_HELPER(ret, "Error in sending help message");
         }
 
         else if (strcmp(buf, CONNECTION) == 0) {
-            ret = send(sock, CHOOSE, strlen(CHOOSE),0);
+
+            ret = WriteSocket(sock, CHOOSE, strlen(CHOOSE));
             ERROR_HELPER(ret, "Error in sending choose message");
 
+            int sendResult;
             ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
-            sendList(sock,list);
+            sendResult = (sendList(sock,list));
             ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
 
-            ret = ReadSocket(sock, buf, strlen(buf));
+            if(sendResult <= 0) {
+                ret = WriteSocket(sock, NOBODY, strlen(NOBODY));
+                ERROR_HELPER(ret, "Errore in sending nobody message");
+                continue;
+            }
 
+            ret = ReadSocket(sock, buf, strlen(buf));
+            if (errno == EAGAIN){
+                ret = WriteSocket(sock,"Timeout\n",8);
+                ERROR_HELPER(ret,"Error in sending Timeout");
+                close_and_cleanup(sock,pos,list);
+            }
             ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
             int found = trovaPartner(buf, list);
             ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
@@ -124,13 +146,12 @@ void cmdManagement(int sock, int pos, client_info* list){
                 list[found].partner[0] = list[pos].sock;
                 list[found].partner[1] = pos;
                 list[found].available = 0;
-                ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
-                //SEMSIGNAL
 
-                ret = send(list[found].sock, list[pos].name, strlen(list[pos].name), 0);
+
+                ret = WriteSocket(list[found].sock, list[pos].name, strlen(list[pos].name));
                 ERROR_HELPER(ret,"Error in sending the username");
 
-                ret = send(list[found].sock, ASKING,strlen(ASKING),0);
+                ret = WriteSocket(list[found].sock, ASKING,strlen(ASKING));
                 ERROR_HELPER(ret,"Error in sending ASKING message");
 
 
@@ -144,6 +165,9 @@ void cmdManagement(int sock, int pos, client_info* list){
 
                 ret = sem_wait(desc,0);
                 ERROR_HELPER(ret, "Error in sem_wait");
+
+                ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
+                //SEMSIGNAL - FINE RACECONDITION su FOUND
 
                 ret = remove_semaphore(desc);
                 ERROR_HELPER(ret, "fail in remove semaphore\n");
@@ -159,12 +183,12 @@ void cmdManagement(int sock, int pos, client_info* list){
                     /*
                      * sending this message i notify the client that i'm in chat session
                      */
-                    ret = send(list[pos].sock,"$chat",5,0);
+                    ret = WriteSocket(list[pos].sock,"$chat",5);
                     ERROR_HELPER(ret, "Error in sending chat");
 
                     chat_session(pos, list);
 
-                    ret = send(list[pos].sock,"$unchat",7,0);
+                    ret = WriteSocket(list[pos].sock,"$unchat",7);
                     ERROR_HELPER(ret, "Error in sending unchat");
 
                     ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
@@ -176,25 +200,33 @@ void cmdManagement(int sock, int pos, client_info* list){
                     list[pos].available = 1;
                 }
             }
+            else {
+                ret = WriteSocket(list[pos].sock, NOT_FOUND, strlen(NOT_FOUND));
+                ERROR_HELPER(ret, "Error in sending notfound message");
+            }
         }
 
         else {
+            ret = WriteSocket(list[pos].sock, INVALID, strlen(INVALID));
+            ERROR_HELPER(ret, "Error in sending INVALID command");
         }
 
     }
 }
 
-void sendList(int sock, client_info* list){        //poi cambiare il tipo di ritorno per far restituire qualcosa di gestibile
-
+int sendList(int sock, client_info* list){        //poi cambiare il tipo di ritorno per far restituire qualcosa di gestibile
+    int somebody = 0;
     int i;
     for(i = 0; i < MAX_USERS; i++) {
         if(list[i].sock != sock && list[i].available) {
             //l'assunzione è che un client disponibile ha un nome già settato, dunque non viene fatto un controllo su come è stato riempito name, che si assume correttamente impostato dal thread relativo a tale client
-            int ret = send(sock, list[i].name, strlen(list[i].name) , 0);
+            int ret = WriteSocket(sock, list[i].name, strlen(list[i].name));
             ERROR_HELPER(ret, "Errore in sending list");
-            ret = send(sock, "\n", 1, 0);
+            ret = WriteSocket(sock, "\n", 1);
             ERROR_HELPER(ret, "Errore in sending the new line");
+            somebody++;
         }
     }
+    return somebody;
 }
 

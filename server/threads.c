@@ -23,28 +23,40 @@ int list_sem;
 //connection handler thread
 void* _connection_handler(void* args) {
     chargs_t* chargs = (chargs_t*) args;
-    /*
-     * TEMPORANEA?
-     */
     int pos = chargs->pos;
     int sock = chargs->sock;
     list = chargs->l;
 
-
-    char    buffer[MAX_MESSAGE_LENGTH]; //buffer for communication
+    char    buffer[MAX_MESSAGE_LENGTH] = {0}; //buffer for communication
     int     bytes;      //read or written files from the buffer
     int     check = 0;  //flag for name setting
 
-    send(sock,WELCOME,strlen(WELCOME),0);
+    int ret = WriteSocket(sock,WELCOME,strlen(WELCOME));
+    ERROR_HELPER(ret, "Error in sending WELCOME");
 
-    list[pos].name = (char*)malloc(MAX_NAME_LENGTH * sizeof(char));
+    //Timeout connection:client doesn't send anything for 5 minutes.
+    struct timeval tv;
+    tv.tv_sec = 60*5;
+    tv.tv_usec = 0;
+    ret = setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,(char*)&tv,sizeof(tv));
+    ERROR_HELPER(ret, "Error in setsockopt");
+
+
+    list[pos].name = (char*)calloc(sizeof(char), MAX_NAME_LENGTH);
     list[pos].sock = sock;
     //setto questa variabile globale, che indica il descrittore del sem sulla lista, in modo che sia visibile da killClient e killServer
     list_sem = list[pos].list_sem;
 
     while(!check) {
-        send(sock, SET_NAME, strlen(SET_NAME), 0);
+        ret = WriteSocket(sock, SET_NAME, strlen(SET_NAME));
+        ERROR_HELPER(ret, "Error in sending SET_NAME");
+
         bytes = ReadSocket(sock, buffer, MAX_MESSAGE_LENGTH);
+        if (errno == EAGAIN){ //if errno = EAGAIN it means that client haven't send anything to server in 5 minutes.
+            ret = WriteSocket(sock,"Timeout\n",8);
+            ERROR_HELPER(ret,"Error in sending Timeout");
+            close_and_cleanup(sock,pos,list);
+        }
         //if buffer è ctrl c invia quit
 
         if(bytes > 0) {
@@ -73,23 +85,26 @@ void* _connection_handler(void* args) {
         }
         if(check) {
             strncpy(list[pos].name, buffer, strlen(buffer));
-            //list[chargs->pos].sock = chargs->sock;
             list[pos].partner[0] = -1;
             list[pos].partner[1] = -1;
             list[pos].available = 1;
 
             break;
         }
+        memset(&buffer, 0, sizeof(buffer)); //controlla funzionamento
         check = 0;
     }
     //Connection setup complete. Now this threads becomes the command listener for the specified client
-    send(sock, READY, strlen(READY), 0);
+    ret = WriteSocket(sock, READY, strlen(READY));
+    ERROR_HELPER(ret,"Error in sending READY");
 
     //RACE CONDITION
     ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait,lista");
 
-    sendList(sock, list);
-
+    if(sendList(sock, list) <= 0) {
+        ret = WriteSocket(sock, NOBODY, strlen(NOBODY));
+        ERROR_HELPER(ret,"Error in sending NOBODY");
+    }
     ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_wait");
     //Fine RACE CONDITION
 
@@ -100,7 +115,7 @@ void killClient() {
     int i,ret;
     for(i = 0; i < MAX_USERS; i++) {
         if (list[i].sock != -1) {
-            ret = send(list[i].sock, KILL_CLIENT, strlen(KILL_CLIENT),0);
+            ret = WriteSocket(list[i].sock, KILL_CLIENT, strlen(KILL_CLIENT));
             ERROR_HELPER(ret, "Error in sending KILL_CLIENT message");
 
             ret = remove_semaphore(list_sem);

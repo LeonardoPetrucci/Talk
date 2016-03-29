@@ -12,10 +12,6 @@ int open_semaphore(key_t key, int numero);
  */
 int remove_semaphore(int sem_des);
 /*
- * setta i valori di tutti i semafori dell'array. numero è il numero dei semafori.
- */
-int set_all_semaphore(int sem_des,int numero, ushort* array_valori);
-/*
  * Setta il valore del semaforo specificato
  */
 int set_semaphore(int sem_des, int num_sem, int valore);

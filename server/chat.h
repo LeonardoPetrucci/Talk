@@ -21,12 +21,4 @@ int trovaPartner(char username[], client_info* list);
 
 void chat_session(int pos, client_info* list);
 
-int initialize_queue(int key, int flag);
-
-int enqueue(char* nickname, char* msg, int queue, int destinatario);
-
-msg_t* dequeue(int queue);
-
-void dequeue_routine(int* queue);
-
 #endif //TALK_CHAT_H

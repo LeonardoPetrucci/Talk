@@ -17,4 +17,5 @@ void _chat_signal();
  */
 void killClient();
 void killServer();
+void alarm_man();
 #endif //TALKSERVER_THREADS_H

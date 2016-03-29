@@ -41,13 +41,16 @@ size_t ReadSocket(int ds, char buf[], int n){
 
 size_t WriteSocket(int ds, char buf[], int n){
     size_t written_bytes = 0; int ret;
-    while (1) {
+    while (n > 0) {
         ret = send(ds, buf + written_bytes, n, 0);
         ERROR_HELPER(ret, "Error in send in WriteSocket");
-        if (ret == 0) break;
+        if (ret == -1)
+            if (errno == EINTR)
+                continue;
+            else
+                return -1;
 
         written_bytes += ret;
-        buf[written_bytes] = '\n';
         n -= written_bytes;
     }
 
@@ -57,7 +60,7 @@ size_t WriteSocket(int ds, char buf[], int n){
 int trovaPartner(char* username, client_info* list){
     int j;
     for (j = 0; j < MAX_USERS; j++){
-        if (strcmp(list[j].name, username)== 0){
+        if (strcmp(username, list[j].name)== 0){
             return j;
         }
     }
@@ -77,17 +80,27 @@ void chat_session(int pos, client_info* list) {
 
     while (1){
 
-        ret = recv(list[pos].sock,buf,MAX_MESSAGE_LENGTH,0);
+        ret = ReadSocket(list[pos].sock,buf,MAX_MESSAGE_LENGTH);
+        if (errno == EAGAIN){
+            ret = WriteSocket(list[pos].sock,"Timeout\n",8);
+            ERROR_HELPER(ret,"Error in sending Timeout");
+            close_and_cleanup(list[pos].sock,pos,list);
+        }
         ERROR_HELPER(ret,"Errore nella read socket");
-
-        printf("%d",ret);
 
         if(list[pos].partner[0] < 0) break;
 
+        if (strcmp(buf,"$chat") == 0){
+            strcat(buf, " ");
+        }
+        if (strcmp(buf,"$unchat")==0){
+            strcat(buf," ");
+        }
+
         if (strcmp(buf, "$exit") == 0) {
-            ret = send(list[pos].partner[0],list[pos].name,strlen(list[pos].name),0);
+            ret = WriteSocket(list[pos].partner[0],list[pos].name,strlen(list[pos].name));
             ERROR_HELPER(ret, "Error in sending the name");
-            ret = send(list[pos].partner[0],END_CHAT,strlen(END_CHAT),0);
+            ret = WriteSocket(list[pos].partner[0],END_CHAT,strlen(END_CHAT));
             ERROR_HELPER(ret, "Error in sending END_CHAT");
             break;
         }
@@ -101,7 +114,7 @@ void chat_session(int pos, client_info* list) {
         strcat(messaggio_chat, "\n");
 
 
-        ret = send(list[pos].partner[0], messaggio_chat, MAX_MESSAGE_CHAT,0);
+        ret = WriteSocket(list[pos].partner[0], messaggio_chat, MAX_MESSAGE_CHAT);
         ERROR_HELPER(ret, "Error in sending message_chat");
 
         memset(buf,0,MAX_MESSAGE_LENGTH);

@@ -20,4 +20,7 @@
 #define REFUSE          " refuse connection"
 #define PLEASE          "Please answer 'y' or 'n'\n"
 #define END_CHAT        " has gone. Press enter to continue\n"
+#define NOBODY          "Nobody available at the moment.\n"
+#define NOT_FOUND       "Partner not found.\n"
+
 #endif
