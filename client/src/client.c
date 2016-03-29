@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 
 	connectionInfo.sin_addr = s;
 	connectionInfo.sin_family = AF_INET;
-	connectionInfo.sin_port = htons(3000);
+	if (argc > 2) connectionInfo.sin_port = htons(atoi(argv[1])); else connectionInfo.sin_port = htons(3000);
 
 	error = connect(connectionSocket, (SOCKADDR*)&connectionInfo, sizeof(connectionInfo));
 	if (error != 0) {
