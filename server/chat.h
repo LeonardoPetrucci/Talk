@@ -17,7 +17,7 @@ size_t  WriteSocket(int ds, char buf[], int n);
 
 // Funzione ausiliaria che trova dato lo username il partner per una chat_session
 
-int trovaPartner(char username[], client_info* list);
+int trovaPartner(int pos, char username[], client_info* list);
 
 void chat_session(int pos, client_info* list);
 

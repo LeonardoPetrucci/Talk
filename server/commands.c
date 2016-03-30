@@ -1,6 +1,3 @@
-//
-// Created by Leonardo on 15/03/2016.
-//
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -30,7 +27,7 @@ void cmdManagement(int sock, int pos, client_info* list){
     char    buf[MAX_MESSAGE_LENGTH];
 
     while (1) {
-        memset(&buf,0 ,sizeof(buf));
+        memset(buf,0 ,sizeof(buf));
         ret = WriteSocket(sock, WAITFORCMD, strlen(WAITFORCMD));
         ERROR_HELPER(ret, "Error in sending WAITFORCMD");
 
@@ -77,7 +74,7 @@ void cmdManagement(int sock, int pos, client_info* list){
 
                 ret = WriteSocket(list[pos].partner[0], REFUSE, strlen(REFUSE));
                 ERROR_HELPER(ret, "Error in sending REFUSE message");
-
+                list[list[pos].partner[1]].available = 1;   //MODIFICATO PERCHE QUANDO CHIAMO CONN SONO INDISPONIBILE
                 list[pos].partner[0] = -1;
 
                 ret = sem_signal(list[pos].sem_des,0);
@@ -91,8 +88,6 @@ void cmdManagement(int sock, int pos, client_info* list){
         }
 
         if (strcmp(buf, QUIT) == 0) {
-            ret = WriteSocket(sock, QUITMESS, strlen(QUITMESS));
-            ERROR_HELPER(ret, "Error in sending quit_message");
             close_and_cleanup(sock, pos, list);
         }
 
@@ -111,7 +106,8 @@ void cmdManagement(int sock, int pos, client_info* list){
         }
 
         else if (strcmp(buf, CONNECTION) == 0) {
-
+            //mentre cerco sono temporaneamente indisponibile
+            list[pos].available = 0;
             ret = WriteSocket(sock, CHOOSE, strlen(CHOOSE));
             ERROR_HELPER(ret, "Error in sending choose message");
 
@@ -123,24 +119,32 @@ void cmdManagement(int sock, int pos, client_info* list){
             if(sendResult <= 0) {
                 ret = WriteSocket(sock, NOBODY, strlen(NOBODY));
                 ERROR_HELPER(ret, "Errore in sending nobody message");
+                list[pos].available = 1;
                 continue;
             }
-
+            else {
+                ret = WriteSocket(sock, SELECT, strlen(SELECT));
+                ERROR_HELPER(ret, "Errore in sending nobody message");
+            }
             ret = ReadSocket(sock, buf, strlen(buf));
             if (errno == EAGAIN){
                 ret = WriteSocket(sock,"Timeout\n",8);
                 ERROR_HELPER(ret,"Error in sending Timeout");
                 close_and_cleanup(sock,pos,list);
             }
+            if (strcmp(buf, QUIT) == 0){
+                close_and_cleanup(list[pos].sock,pos,list);
+            }
             ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
-            int found = trovaPartner(buf, list);
+            int found = trovaPartner(pos, buf, list);
             ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
 
             if( found >= 0) {
-                list[pos].available = 0;
+                //list[pos].available = 0;
                 list[pos].partner[0] = list[found].sock;
                 list[pos].partner[1] = found;
-
+                ret = WriteSocket(sock, WAITCHAT, strlen(WAITCHAT));
+                ERROR_HELPER(ret,"Error in sending the message");
                 //SEWAIT - RACECONDITION
                 ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
                 list[found].partner[0] = list[pos].sock;
@@ -174,17 +178,18 @@ void cmdManagement(int sock, int pos, client_info* list){
 
                 list[found].sem_des = 0;
 
+                /*
+                     * sending this message i notify the client that i'm in chat session
+                     */
+                ret = WriteSocket(list[pos].sock,"$chat",5);
+                ERROR_HELPER(ret, "Error in sending chat");
+
                 if (list[found].available == 1){
                     list[pos].partner[0] = -1;
                     list[pos].partner[1] = -1;
                     list[pos].available = 1;
                 }
                 else {
-                    /*
-                     * sending this message i notify the client that i'm in chat session
-                     */
-                    ret = WriteSocket(list[pos].sock,"$chat",5);
-                    ERROR_HELPER(ret, "Error in sending chat");
 
                     chat_session(pos, list);
 
@@ -203,12 +208,13 @@ void cmdManagement(int sock, int pos, client_info* list){
             else {
                 ret = WriteSocket(list[pos].sock, NOT_FOUND, strlen(NOT_FOUND));
                 ERROR_HELPER(ret, "Error in sending notfound message");
+                list[pos].available = 1;
+                continue;
             }
         }
 
         else {
-            ret = WriteSocket(list[pos].sock, INVALID, strlen(INVALID));
-            ERROR_HELPER(ret, "Error in sending INVALID command");
+            continue;
         }
 
     }

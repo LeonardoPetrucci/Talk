@@ -71,6 +71,7 @@ int main(char argc, char* argv[]){
     }
     //executing ifconfig operation using a child process
     pid_t ifconfig;
+    int status;
     ifconfig = fork();
     if(ifconfig == -1) {
         printf("Error: cannot fork.\n");
@@ -82,29 +83,29 @@ int main(char argc, char* argv[]){
         printf("ERROR: cannot complete ifconfig operation.\n");
     }
     else {
-        wait(&ifconfig);
+        wait(&status);
     }
         //listen operation
         listen(lsock, MAX_CONNECTIONS);
         printf("Server running...\n");
 
         //accept operation and connection management
+    int free_space = 0;
         while (1) {
             csock = accept(lsock, (struct sockaddr *) &caddr, &csize);
             if (csock < 0) {
                 ERROR_HELPER(csock, "Errore nella accept");
             }
             //Checking space in the connection list, if not, client disconnected
-            int free_space = 0;
-            int i;
 
+            int i;
             for (i = 0; i < MAX_USERS; i++) {
                 if (list[i].sock < 0) {
                     free_space = 1;
                     //initializing thread and thread data space
                     //pthread_t               ch;     //connection handler thread space
                     chargs_t chdata = {list, csock, i}; //connection handler thread data
-                    int chid = pthread_create(&list[i].chandler, NULL, _connection_handler, &chdata);
+                    pthread_create(&list[i].chandler, NULL, _connection_handler, &chdata);
                     signal(SIGINT, killClient);
                     signal(SIGHUP, killClient);
                     signal(SIGQUIT, killClient);
@@ -113,8 +114,6 @@ int main(char argc, char* argv[]){
                     signal(SIGILL, killClient);
 
                     pthread_detach(list[i].chandler);
-                    //ERROR_HELPER(chid, "ERROR: cannot create connection handler thread\n");
-                    //spostare il thread nella struct del client?
                     break;
                 }
             }

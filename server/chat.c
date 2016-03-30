@@ -1,6 +1,3 @@
-//
-// Created by Leonardo on 15/03/2016.
-//
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -14,6 +11,7 @@
 #include "macros.h"
 #include "messages.h"
 #include "commands.h"
+
 /*guardando il codice https://gist.github.com/silv3rm00n/5821760, la write ha una gestione più "elementare" della
  * read, che invece necessita dopo l'operazione di aggiungere il terminatore di stringa '\0' alla posizione
  * buffer[byte_letti]. Quando dobbiamo inviare le stringhe definite in messages.h facciamo la semplice write,
@@ -57,11 +55,11 @@ size_t WriteSocket(int ds, char buf[], int n){
     return written_bytes;
 }
 
-int trovaPartner(char* username, client_info* list){
-    int j;
-    for (j = 0; j < MAX_USERS; j++){
-        if (strcmp(username, list[j].name)== 0){
-            return j;
+int trovaPartner(int pos, char* username, client_info* list){
+    int i;
+    for (i = 0; i < MAX_USERS; i++){
+        if (i != pos && list[i].available == 1 && strcmp(username, list[i].name)== 0){
+            return i;
         }
     }
     return -1;
@@ -69,8 +67,7 @@ int trovaPartner(char* username, client_info* list){
 
 void chat_session(int pos, client_info* list) {
 
-    char* ch = "\n\n- Now you're in chat! Puts '$exit' to go away.\n";
-    int ret = send(list[pos].sock,ch,strlen(ch),0);
+    int ret = WriteSocket(list[pos].sock,CHAT,strlen(CHAT));
     ERROR_HELPER(ret,"Error in sending message");
 
     char buf[MAX_MESSAGE_LENGTH];
@@ -79,7 +76,6 @@ void chat_session(int pos, client_info* list) {
     memset(messaggio_chat,0,MAX_MESSAGE_CHAT);
 
     while (1){
-
         ret = ReadSocket(list[pos].sock,buf,MAX_MESSAGE_LENGTH);
         if (errno == EAGAIN){
             ret = WriteSocket(list[pos].sock,"Timeout\n",8);
@@ -88,7 +84,7 @@ void chat_session(int pos, client_info* list) {
         }
         ERROR_HELPER(ret,"Errore nella read socket");
 
-        if(list[pos].partner[0] < 0) break;
+        if(list[pos].partner[0] < 0) break; //break cambiato con return, così la chat session esce proprio
 
         if (strcmp(buf,"$chat") == 0){
             strcat(buf, " ");
@@ -102,17 +98,14 @@ void chat_session(int pos, client_info* list) {
             ERROR_HELPER(ret, "Error in sending the name");
             ret = WriteSocket(list[pos].partner[0],END_CHAT,strlen(END_CHAT));
             ERROR_HELPER(ret, "Error in sending END_CHAT");
-            break;
+            break; //anche qui break cambiato con return
         }
 
-
-        //printf("Ho ricevuto %s\n",buf);
         strcat(messaggio_chat,"[");
         strcat(messaggio_chat,list[pos].name);
         strcat(messaggio_chat, "]: ");
         strcat(messaggio_chat, buf);
         strcat(messaggio_chat, "\n");
-
 
         ret = WriteSocket(list[pos].partner[0], messaggio_chat, MAX_MESSAGE_CHAT);
         ERROR_HELPER(ret, "Error in sending message_chat");
