@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <WS2tcpip.h>
 #include <wincon.h>
+
 #include "util_windows.h"
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -19,13 +20,11 @@ void interruptManagement(DWORD fdwCtrlType) {
 		}
 
 		if (connectionSocket > 0) {
+
 			printf("\nA CTRL+C event was sent. I'm logging you off.\n");
 			int ret = WriteSocket(connectionSocket, "$quit", 5);
 			ERROR_HELPER(ret, "Error in sending $quit");
 
-			char buf[MAX_LENGTH];
-			ret = ReadSocket(connectionSocket, buf, MAX_LENGTH);
-			ERROR_HELPER(ret, "Error in recv quit message");
 		}
 
 		close_and_cleanup(connectionSocket);
@@ -72,7 +71,7 @@ int main(int argc, char* argv[]) {
 
 	connectionInfo.sin_addr = s;
 	connectionInfo.sin_family = AF_INET;
-	if (argc > 2) connectionInfo.sin_port = htons(atoi(argv[1])); else connectionInfo.sin_port = htons(3000);
+	if (argc > 3) connectionInfo.sin_port = htons(atoi(argv[2])); else connectionInfo.sin_port = htons(3000);
 
 	error = connect(connectionSocket, (SOCKADDR*)&connectionInfo, sizeof(connectionInfo));
 	if (error != 0) {
@@ -99,12 +98,14 @@ int main(int argc, char* argv[]) {
 
 		ret = WriteSocket(connectionSocket, buf, strlen(buf));
 		ERROR_HELPER(ret, "Errore nell' invio dal socket");
-		
+		/*
+		if you send $quit you break while loop.
+		*/
+		if (strcmp(buf, "$quit") == 0) break;
 	}
-
+	//it prints QUITMESS and call close and cleanup
+	printf("%s", QUITMESS);
 	close_and_cleanup(connectionSocket);
-
-	return 0;
 }
 
 HANDLE LaunchThread(int* ds) {
@@ -126,12 +127,6 @@ void ListenSocket(void * arg) {
 		int ret = ReadSocket(*ds, buf, MAX_LENGTH);
 		ERROR_HELPER(ret, "Errore nella read di ListenSocket");
 
-		
-		if (ret < 0) {
-			printf("errore nel kill timer\n");
-			close_and_cleanup(*ds);
-		}
-		
 
 		if (strcmp("$chat", buf) == 0) {
 			chat = 1;
@@ -143,6 +138,18 @@ void ListenSocket(void * arg) {
 		}
 
 		printf("%s", buf);
+
+		/*
+		if you receive this message it means that server is no more available. close and cleanup!
+		*/
+		if (strcmp(buf, KILL_CLIENT) == 0)
+			close_and_cleanup(*ds);
+		/*
+		if you receive timeout message -> close and cleanup
+		*/
+		if (strcmp(buf, "Timeout\n") == 0)
+			close_and_cleanup(*ds);
+
 		memset(buf, 0, MAX_LENGTH);
 	}
 
