@@ -1,6 +1,3 @@
-//
-// Created by Leonardo on 15/03/2016.
-//
 
 #ifndef TALK_COMMANDS_H
 #define TALK_COMMANDS_H

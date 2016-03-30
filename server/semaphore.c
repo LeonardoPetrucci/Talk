@@ -1,6 +1,4 @@
-//
-// Created by biar on 3/16/16.
-//
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/sem.h>

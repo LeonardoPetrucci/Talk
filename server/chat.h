@@ -1,7 +1,3 @@
-//
-// Created by Leonardo on 15/03/2016.
-//
-
 #ifndef TALK_CHAT_H
 #define TALK_CHAT_H
 

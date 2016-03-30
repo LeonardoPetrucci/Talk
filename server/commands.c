@@ -88,8 +88,6 @@ void cmdManagement(int sock, int pos, client_info* list){
         }
 
         if (strcmp(buf, QUIT) == 0) {
-            ret = WriteSocket(sock, QUITMESS, strlen(QUITMESS));
-            ERROR_HELPER(ret, "Error in sending quit_message");
             close_and_cleanup(sock, pos, list);
         }
 
@@ -134,6 +132,9 @@ void cmdManagement(int sock, int pos, client_info* list){
                 ERROR_HELPER(ret,"Error in sending Timeout");
                 close_and_cleanup(sock,pos,list);
             }
+            if (strcmp(buf, QUIT) == 0){
+                close_and_cleanup(list[pos].sock,pos,list);
+            }
             ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
             int found = trovaPartner(pos, buf, list);
             ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_signal");
@@ -177,17 +178,18 @@ void cmdManagement(int sock, int pos, client_info* list){
 
                 list[found].sem_des = 0;
 
+                /*
+                     * sending this message i notify the client that i'm in chat session
+                     */
+                ret = WriteSocket(list[pos].sock,"$chat",5);
+                ERROR_HELPER(ret, "Error in sending chat");
+
                 if (list[found].available == 1){
                     list[pos].partner[0] = -1;
                     list[pos].partner[1] = -1;
                     list[pos].available = 1;
                 }
                 else {
-                    /*
-                     * sending this message i notify the client that i'm in chat session
-                     */
-                    ret = WriteSocket(list[pos].sock,"$chat",5);
-                    ERROR_HELPER(ret, "Error in sending chat");
 
                     chat_session(pos, list);
 
@@ -202,6 +204,7 @@ void cmdManagement(int sock, int pos, client_info* list){
                     list[pos].partner[1] = -1;
                     list[pos].available = 1;
                 }
+                continue;
             }
             else {
                 ret = WriteSocket(list[pos].sock, NOT_FOUND, strlen(NOT_FOUND));

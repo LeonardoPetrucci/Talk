@@ -13,7 +13,7 @@ size_t ReadSocket(int ds, char buf[], int n) {
 		if (ret == 0) break;
 
 		read_bytes += ret;
-		if (buf[read_bytes] == '\n') break;
+		if (buf[read_bytes] <= 0) break;
 		n -= ret;
 	}
 	buf[read_bytes] = '\0';
@@ -29,7 +29,7 @@ size_t	WriteSocket(int ds, char buf[], int n) {
 		if (ret == 0) break;
 
 		written_bytes += ret;
-		buf[written_bytes] = '\n';
+		//buf[written_bytes] = '\n';
 		n -= written_bytes;
 	}
 
@@ -38,7 +38,6 @@ size_t	WriteSocket(int ds, char buf[], int n) {
 
 void close_and_cleanup(SOCKET socket) {
 	closesocket(socket);
-	//free(args);
 	WSACleanup();
 	ExitProcess(EXIT_SUCCESS);
 

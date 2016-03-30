@@ -31,7 +31,9 @@ void* _connection_handler(void* args) {
     int     bytes;      //read or written files from the buffer
     int     check = 0;  //flag for name setting
 
-    int ret = WriteSocket(sock,WELCOME,strlen(WELCOME));
+    int ret = WriteSocket(sock,TALK_INTRO,strlen(TALK_INTRO));
+    ERROR_HELPER(ret, "Error in sending WELCOME");
+    ret = WriteSocket(sock,WELCOME,strlen(WELCOME));
     ERROR_HELPER(ret, "Error in sending WELCOME");
 
     //Timeout connection:client doesn't send anything for 5 minutes.
@@ -95,6 +97,8 @@ void* _connection_handler(void* args) {
         check = 0;
     }
     //Connection setup complete. Now this threads becomes the command listener for the specified client
+    ret = WriteSocket(sock,MAIN_INTRO,strlen(MAIN_INTRO));
+    ERROR_HELPER(ret, "Error in sending WELCOME");
     ret = WriteSocket(sock, READY, strlen(READY));
     ERROR_HELPER(ret,"Error in sending READY");
 

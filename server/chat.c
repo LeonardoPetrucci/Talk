@@ -66,8 +66,9 @@ int trovaPartner(int pos, char* username, client_info* list){
 }
 
 void chat_session(int pos, client_info* list) {
-
-    int ret = WriteSocket(list[pos].sock,CHAT,strlen(CHAT));
+    int ret = WriteSocket(list[pos].sock,CHAT_INTRO,strlen(CHAT_INTRO));
+    ERROR_HELPER(ret,"Error in sending message");
+    ret = WriteSocket(list[pos].sock,CHAT,strlen(CHAT));
     ERROR_HELPER(ret,"Error in sending message");
 
     char buf[MAX_MESSAGE_LENGTH];
@@ -84,7 +85,7 @@ void chat_session(int pos, client_info* list) {
         }
         ERROR_HELPER(ret,"Errore nella read socket");
 
-        if(list[pos].partner[0] < 0) break; //break cambiato con return, così la chat session esce proprio
+        if(list[pos].partner[0] < 0) return; //break cambiato con return, così la chat session esce proprio
 
         if (strcmp(buf,"$chat") == 0){
             strcat(buf, " ");
@@ -98,7 +99,13 @@ void chat_session(int pos, client_info* list) {
             ERROR_HELPER(ret, "Error in sending the name");
             ret = WriteSocket(list[pos].partner[0],END_CHAT,strlen(END_CHAT));
             ERROR_HELPER(ret, "Error in sending END_CHAT");
-            break; //anche qui break cambiato con return
+            ret = WriteSocket(list[pos].sock, MAIN_INTRO, strlen(MAIN_INTRO));
+            ERROR_HELPER(ret, "Error in sending WELCOME");
+            ret = WriteSocket(list[pos].partner[0], MAIN_INTRO, strlen(MAIN_INTRO));
+            ERROR_HELPER(ret, "Error in sending WELCOME");
+            ret = WriteSocket(list[pos].partner[0], WAITFORCMD, strlen(WAITFORCMD));
+            ERROR_HELPER(ret, "Error in sending WAITFORCMD");
+            return; //anche qui break cambiato con return
         }
 
         strcat(messaggio_chat,"[");
