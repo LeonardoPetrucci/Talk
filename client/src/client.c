@@ -15,8 +15,10 @@ int chat = 0;
 void interruptManagement(DWORD fdwCtrlType) {
 	if (fdwCtrlType == CTRL_C_EVENT || fdwCtrlType == CTRL_BREAK_EVENT || fdwCtrlType == CTRL_CLOSE_EVENT || fdwCtrlType == CTRL_LOGOFF_EVENT || fdwCtrlType == CTRL_SHUTDOWN_EVENT) {
 		if(chat){
+			
 			int ret = WriteSocket(connectionSocket, "$exit", 5);
 			ERROR_HELPER(ret, "Error in sending exit");
+
 		}
 
 		if (connectionSocket > 0) {
