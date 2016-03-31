@@ -10,6 +10,10 @@
             }																		\
         } while (0)																	\
 
+#define QUITMESS        "You are going to be disconnected. We hope to see you again!\n"
+#define KILL_CLIENT     "The server is no more available. Please try later!\n"
+//var that indicates if you are in chat or not
+extern int chat; 
 /*
 	util defines a sets of functions that can be used by server and client
 */

@@ -16,4 +16,6 @@ void _chat_signal();
  * Manage interrupt signal
  */
 void killClient();
+void killServer();
+void alarm_man();
 #endif //TALKSERVER_THREADS_H
