@@ -15,11 +15,13 @@
 #include "semaphore.h"
 #include "chat.h"
 
+client_info* list;
+int position;
+
 void close_and_cleanup(int sock, int pos, client_info* list){
     close(sock);
     memset(&list[pos], 0, sizeof(client_info));
     list[pos].sock = -1;
-    list[pos].available = -1;
 }
 
 void cmdManagement(int sock, int pos, client_info* list){
@@ -41,11 +43,12 @@ void cmdManagement(int sock, int pos, client_info* list){
         ERROR_HELPER(ret, "Error in reading from socket");
 
         if (list[pos].available == 0) {
-            if (*buf == 'y'){
-
+            if (*buf == 'y') {
                 ret = sem_signal(list[pos].sem_des,0);
                 ERROR_HELPER(ret, "Error in sem_signal");
-
+                if(list[pos].partner[0] < 0) {
+                    continue;
+                }
                 /*
                  * sending this message i notify the client that i'm in chat session
                  */
@@ -57,6 +60,8 @@ void cmdManagement(int sock, int pos, client_info* list){
                 ret = WriteSocket(list[pos].sock,"$unchat",7);
                 ERROR_HELPER(ret, "Error in sending unchat");
 
+                ret = WriteSocket(list[pos].sock, MAIN_INTRO, strlen(MAIN_INTRO));
+                ERROR_HELPER(ret, "Error in sending WELCOME");
 
                 ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
                 list[list[pos].partner[1]].partner[0] = -1;
@@ -89,7 +94,7 @@ void cmdManagement(int sock, int pos, client_info* list){
 
         if (strcmp(buf, QUIT) == 0) {
             close_and_cleanup(sock, pos, list);
-            pthread_exit(EXIT_SUCCESS);
+            pthread_exit(0);
         }
 
         else if (strcmp(buf, LIST) == 0) {
@@ -167,6 +172,8 @@ void cmdManagement(int sock, int pos, client_info* list){
                 ERROR_HELPER(ret, "Errore nel setting del valore del semaforo");
 
                 list[found].sem_des = desc;
+                position = pos;
+
 
                 ret = sem_wait(desc,0);
                 ERROR_HELPER(ret, "Error in sem_wait");
@@ -190,11 +197,11 @@ void cmdManagement(int sock, int pos, client_info* list){
                      */
                     ret = WriteSocket(list[pos].sock,"$chat",5);
                     ERROR_HELPER(ret, "Error in sending chat");
-
                     chat_session(pos, list);
 
                     ret = WriteSocket(list[pos].sock,"$unchat",7);
                     ERROR_HELPER(ret, "Error in sending unchat");
+
                     ret = WriteSocket(list[pos].sock, MAIN_INTRO, strlen(MAIN_INTRO));
                     ERROR_HELPER(ret, "Error in sending WELCOME");
 
@@ -236,5 +243,9 @@ int sendList(int sock, client_info* list){        //poi cambiare il tipo di rito
         }
     }
     return somebody;
+}
+
+void PipeHandler(){
+    close_and_cleanup(list[position].sock,position,list);
 }
 

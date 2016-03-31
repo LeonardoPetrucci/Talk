@@ -113,6 +113,7 @@ int main(char argc, char* argv[]){
                     signal(SIGKILL, killClient);
                     signal(SIGTERM, killClient);
                     signal(SIGILL, killClient);
+                    signal(SIGPIPE, PipeHandler);
 
                     pthread_detach(list[i].chandler);
                     break;
