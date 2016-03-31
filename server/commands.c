@@ -178,11 +178,6 @@ void cmdManagement(int sock, int pos, client_info* list){
 
                 list[found].sem_des = 0;
 
-                /*
-                     * sending this message i notify the client that i'm in chat session
-                     */
-                ret = WriteSocket(list[pos].sock,"$chat",5);
-                ERROR_HELPER(ret, "Error in sending chat");
 
                 if (list[found].available == 1){
                     list[pos].partner[0] = -1;
@@ -190,11 +185,18 @@ void cmdManagement(int sock, int pos, client_info* list){
                     list[pos].available = 1;
                 }
                 else {
+                    /*
+                     * sending this message i notify the client that i'm in chat session
+                     */
+                    ret = WriteSocket(list[pos].sock,"$chat",5);
+                    ERROR_HELPER(ret, "Error in sending chat");
 
                     chat_session(pos, list);
 
                     ret = WriteSocket(list[pos].sock,"$unchat",7);
                     ERROR_HELPER(ret, "Error in sending unchat");
+                    ret = WriteSocket(list[pos].sock, MAIN_INTRO, strlen(MAIN_INTRO));
+                    ERROR_HELPER(ret, "Error in sending WELCOME");
 
                     ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
                     list[found].partner[0] = -1;

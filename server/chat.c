@@ -41,7 +41,6 @@ size_t WriteSocket(int ds, char buf[], int n){
     size_t written_bytes = 0; int ret;
     while (n > 0) {
         ret = send(ds, buf + written_bytes, n, 0);
-        ERROR_HELPER(ret, "Error in send in WriteSocket");
         if (ret == -1)
             if (errno == EINTR)
                 continue;
@@ -99,12 +98,6 @@ void chat_session(int pos, client_info* list) {
             ERROR_HELPER(ret, "Error in sending the name");
             ret = WriteSocket(list[pos].partner[0],END_CHAT,strlen(END_CHAT));
             ERROR_HELPER(ret, "Error in sending END_CHAT");
-            ret = WriteSocket(list[pos].sock, MAIN_INTRO, strlen(MAIN_INTRO));
-            ERROR_HELPER(ret, "Error in sending WELCOME");
-            ret = WriteSocket(list[pos].partner[0], MAIN_INTRO, strlen(MAIN_INTRO));
-            ERROR_HELPER(ret, "Error in sending WELCOME");
-            ret = WriteSocket(list[pos].partner[0], WAITFORCMD, strlen(WAITFORCMD));
-            ERROR_HELPER(ret, "Error in sending WAITFORCMD");
             return; //anche qui break cambiato con return
         }
 

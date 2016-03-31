@@ -1,9 +1,9 @@
 #ifndef _MESSAGES_H
 #define _MESSAGES_H
 
-#define TALK_INTRO      "-------------------------[TALK]-------------------------\n"
-#define MAIN_INTRO      "-------------------------[MAIN ROOM]-------------------------\n"
-#define CHAT_INTRO      "-------------------------[CHAT SESSION]-------------------------\n"
+#define TALK_INTRO      "\n\n-------------------------[TALK]-------------------------\n\n"
+#define MAIN_INTRO      "\n\n-------------------------[MAIN ROOM]-------------------------\n\n"
+#define CHAT_INTRO      "\n\n-------------------------[CHAT SESSION]-------------------------\n\n"
 
 #define NO_MORE_SPACE   "Sorry, there is no more space in the chat room. See you later!\n"
 #define KILL_CLIENT     "The server is no more available. Please try later!\n"
@@ -21,7 +21,7 @@
 #define ASKING          " would like to start chatting with you! Would you like to do the same? y/n: "
 #define REFUSE          " refuse your connection request.\n"
 #define PLEASE          "Please answer 'y' to accept or 'n' to refuse: "
-#define END_CHAT        " has gone.\n"
+#define END_CHAT        " has gone. Please puts something, then press ENTER to return in the main room\n"
 #define NOBODY          "Nobody available at the moment.\n"
 #define NOT_FOUND       "Partner not found.\n"
 
