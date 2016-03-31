@@ -19,7 +19,7 @@ void close_and_cleanup(int sock, int pos, client_info* list){
     close(sock);
     memset(&list[pos], 0, sizeof(client_info));
     list[pos].sock = -1;
-    pthread_exit(0);
+    list[pos].available = -1;
 }
 
 void cmdManagement(int sock, int pos, client_info* list){
@@ -89,6 +89,7 @@ void cmdManagement(int sock, int pos, client_info* list){
 
         if (strcmp(buf, QUIT) == 0) {
             close_and_cleanup(sock, pos, list);
+            pthread_exit(EXIT_SUCCESS);
         }
 
         else if (strcmp(buf, LIST) == 0) {
@@ -134,6 +135,7 @@ void cmdManagement(int sock, int pos, client_info* list){
             }
             if (strcmp(buf, QUIT) == 0){
                 close_and_cleanup(list[pos].sock,pos,list);
+                pthread_exit(EXIT_SUCCESS);
             }
             ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
             int found = trovaPartner(pos, buf, list);
@@ -150,7 +152,6 @@ void cmdManagement(int sock, int pos, client_info* list){
                 list[found].partner[0] = list[pos].sock;
                 list[found].partner[1] = pos;
                 list[found].available = 0;
-
 
                 ret = WriteSocket(list[found].sock, list[pos].name, strlen(list[pos].name));
                 ERROR_HELPER(ret,"Error in sending the username");
@@ -177,7 +178,6 @@ void cmdManagement(int sock, int pos, client_info* list){
                 ERROR_HELPER(ret, "fail in remove semaphore\n");
 
                 list[found].sem_des = 0;
-
 
                 if (list[found].available == 1){
                     list[pos].partner[0] = -1;
@@ -219,7 +219,6 @@ void cmdManagement(int sock, int pos, client_info* list){
         else {
             continue;
         }
-
     }
 }
 

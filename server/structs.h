@@ -17,7 +17,8 @@ typedef struct{
     int             list_sem;                   //desc on list semaphore
 }client_info;
 //conntected client list
-extern              client_info *list; //*list;
+extern int lsock;
+extern              client_info*    list;
 //extern              int list_sem;
 //connection handler thread arguments
 typedef struct {
@@ -26,10 +27,4 @@ typedef struct {
     int             pos;    //client list position index
 }chargs_t;
 
-typedef struct {
-    char           mittente[MAX_NAME_LENGTH];
-    int            destinatario;
-    long           type;
-    char           messaggio[MAX_MESSAGE_LENGTH];
-}msg_t;
 #endif //_STRUCTS_H

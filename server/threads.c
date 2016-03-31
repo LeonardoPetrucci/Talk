@@ -17,6 +17,7 @@
 #include "commands.h"
 #include "semaphore.h"
 
+int lsock;
 client_info* list;
 int list_sem;
 
@@ -93,7 +94,7 @@ void* _connection_handler(void* args) {
 
             break;
         }
-        memset(&buffer, 0, sizeof(buffer)); //controlla funzionamento
+        memset(buffer, 0, sizeof(buffer)); //controlla funzionamento
         check = 0;
     }
     //Connection setup complete. Now this threads becomes the command listener for the specified client
@@ -118,16 +119,15 @@ void* _connection_handler(void* args) {
 void killClient() {
     int i,ret;
     for(i = 0; i < MAX_USERS; i++) {
-        if (list[i].sock != -1) {
+        if (list[i].sock > 0) {
             ret = WriteSocket(list[i].sock, KILL_CLIENT, strlen(KILL_CLIENT));
             ERROR_HELPER(ret, "Error in sending KILL_CLIENT message");
-
-            ret = remove_semaphore(list_sem);
-            ERROR_HELPER(ret, "error in remove semaphore");
-
             close_and_cleanup(list[i].sock, i, list);
         }
     }
+    ret = remove_semaphore(list_sem);
+    ERROR_HELPER(ret, "error in remove semaphore");
+    close(lsock);
     printf("Server stopped.\n");
     exit(EXIT_SUCCESS);
 }
@@ -137,7 +137,7 @@ void killServer() {
 
     //int ret = remove_semaphore(list_sem);
     //ERROR_HELPER(ret, "error in remove semaphore");
-
-    printf("\nServer stopped");
+    close(lsock);
+    printf("\nServer stopped\n");
     exit(EXIT_SUCCESS);
 }

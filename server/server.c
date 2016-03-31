@@ -56,7 +56,7 @@ int main(char argc, char* argv[]){
     for(i = 0; i < MAX_USERS; i++) {
         list[i].name = (char*)malloc(MAX_NAME_LENGTH* sizeof(char));
         list[i].sock = -1;
-        list[i].list_sem = ret_sem;
+
     }
     //Initializing server elements
     memset(&saddr, 0, sizeof(saddr));
@@ -102,6 +102,7 @@ int main(char argc, char* argv[]){
             for (i = 0; i < MAX_USERS; i++) {
                 if (list[i].sock < 0) {
                     free_space = 1;
+                    list[i].list_sem = ret_sem;
                     //initializing thread and thread data space
                     //pthread_t               ch;     //connection handler thread space
                     chargs_t chdata = {list, csock, i}; //connection handler thread data
