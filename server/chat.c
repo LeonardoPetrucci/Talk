@@ -82,6 +82,10 @@ void chat_session(int pos, client_info* list) {
             ERROR_HELPER(ret,"Error in sending Timeout");
             close_and_cleanup(list[pos].sock,pos,list);
         }
+        if(ernno == ECONNRESET) {
+            close_and_cleanup(list[pos].sock, pos, list);
+            pthread_exit(0);
+        }
         ERROR_HELPER(ret,"Errore nella read socket");
 
         if(list[pos].partner[0] <= 0) return; //break cambiato con return, così la chat session esce proprio
