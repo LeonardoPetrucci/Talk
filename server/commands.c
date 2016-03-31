@@ -34,11 +34,14 @@ void cmdManagement(int sock, int pos, client_info* list){
         ERROR_HELPER(ret, "Error in sending WAITFORCMD");
 
         ret = ReadSocket(sock, buf, MAX_MESSAGE_LENGTH);
-
         if (errno == EAGAIN){
             ret = WriteSocket(sock,"Timeout\n",8);
             ERROR_HELPER(ret,"Error in sending Timeout");
             close_and_cleanup(sock,pos,list);
+        }
+        if(errno == ECONNRESET) {
+            close_and_cleanup(list[pos].sock,pos,list);
+            pthread_exit(0);
         }
         ERROR_HELPER(ret, "Error in reading from socket");
 
@@ -46,9 +49,6 @@ void cmdManagement(int sock, int pos, client_info* list){
             if (*buf == 'y') {
                 ret = sem_signal(list[pos].sem_des,0);
                 ERROR_HELPER(ret, "Error in sem_signal");
-                if(list[pos].partner[0] < 0) {
-                    continue;
-                }
                 /*
                  * sending this message i notify the client that i'm in chat session
                  */
@@ -58,6 +58,10 @@ void cmdManagement(int sock, int pos, client_info* list){
                 chat_session(pos, list);
 
                 ret = WriteSocket(list[pos].sock,"$unchat",7);
+                if(errno == ECONNRESET) {
+                    close_and_cleanup(list[pos].sock,pos,list);
+                    pthread_exit(0);
+                }
                 ERROR_HELPER(ret, "Error in sending unchat");
 
                 ret = WriteSocket(list[pos].sock, MAIN_INTRO, strlen(MAIN_INTRO));
@@ -140,7 +144,7 @@ void cmdManagement(int sock, int pos, client_info* list){
             }
             if (strcmp(buf, QUIT) == 0){
                 close_and_cleanup(list[pos].sock,pos,list);
-                pthread_exit(EXIT_SUCCESS);
+                pthread_exit(0);
             }
             ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait");
             int found = trovaPartner(pos, buf, list);
@@ -196,10 +200,18 @@ void cmdManagement(int sock, int pos, client_info* list){
                      * sending this message i notify the client that i'm in chat session
                      */
                     ret = WriteSocket(list[pos].sock,"$chat",5);
+                    if (errno == ECONNRESET){
+                        close_and_cleanup(list[pos].sock,pos,list);
+                        pthread_exit(0);
+                    }
                     ERROR_HELPER(ret, "Error in sending chat");
                     chat_session(pos, list);
 
                     ret = WriteSocket(list[pos].sock,"$unchat",7);
+                    if(errno == ECONNRESET) {
+                        close_and_cleanup(list[pos].sock,pos,list);
+                        pthread_exit(0);
+                    }
                     ERROR_HELPER(ret, "Error in sending unchat");
 
                     ret = WriteSocket(list[pos].sock, MAIN_INTRO, strlen(MAIN_INTRO));
@@ -245,7 +257,4 @@ int sendList(int sock, client_info* list){        //poi cambiare il tipo di rito
     return somebody;
 }
 
-void PipeHandler(){
-    close_and_cleanup(list[position].sock,position,list);
-}
 

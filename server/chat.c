@@ -84,7 +84,7 @@ void chat_session(int pos, client_info* list) {
         }
         ERROR_HELPER(ret,"Errore nella read socket");
 
-        if(list[pos].partner[0] < 0) return; //break cambiato con return, così la chat session esce proprio
+        if(list[pos].partner[0] <= 0) return; //break cambiato con return, così la chat session esce proprio
 
         if (strcmp(buf,"$chat") == 0){
             strcat(buf, " ");
@@ -106,8 +106,10 @@ void chat_session(int pos, client_info* list) {
         strcat(messaggio_chat, "]: ");
         strcat(messaggio_chat, buf);
         strcat(messaggio_chat, "\n");
-
         ret = WriteSocket(list[pos].partner[0], messaggio_chat, MAX_MESSAGE_CHAT);
+        if(errno == EBADF) {
+            return;
+        }
         ERROR_HELPER(ret, "Error in sending message_chat");
 
         memset(buf,0,MAX_MESSAGE_LENGTH);

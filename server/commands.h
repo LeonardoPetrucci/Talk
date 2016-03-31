@@ -29,6 +29,5 @@ int sendList(int sock, client_info* list);  //ho eliminato il parametro lista, t
 
 void close_and_cleanup(int sock, int pos, client_info* list);
 
-void PipeHandler();
 
 #endif //TALK_COMMANDS_H
