@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -7,8 +6,6 @@
 #include <pthread.h>
 
 #include "chat.h"
-#include "structs.h"
-#include "macros.h"
 #include "messages.h"
 #include "commands.h"
 
@@ -66,9 +63,9 @@ int trovaPartner(int pos, char* username, client_info* list){
 
 void chat_session(int pos, client_info* list) {
     int ret = WriteSocket(list[pos].sock,CHAT_INTRO,strlen(CHAT_INTRO));
-    ERROR_HELPER(ret,"Error in sending message");
+    ERROR_HELPER(ret,"ERROR - chat.c line 69");
     ret = WriteSocket(list[pos].sock,CHAT,strlen(CHAT));
-    ERROR_HELPER(ret,"Error in sending message");
+    ERROR_HELPER(ret,"ERROR - chat.c line 71");
 
     char buf[MAX_MESSAGE_LENGTH];
     char messaggio_chat[MAX_MESSAGE_CHAT];
@@ -79,14 +76,14 @@ void chat_session(int pos, client_info* list) {
         ret = ReadSocket(list[pos].sock,buf,MAX_MESSAGE_LENGTH);
         if (errno == EAGAIN){
             ret = WriteSocket(list[pos].sock,"Timeout\n",8);
-            ERROR_HELPER(ret,"Error in sending Timeout");
+            ERROR_HELPER(ret,"ERROR - chat.c line 82");
             close_and_cleanup(list[pos].sock,pos,list);
         }
-        if(ernno == ECONNRESET) {
+        if(errno == ECONNRESET) {
             close_and_cleanup(list[pos].sock, pos, list);
             pthread_exit(0);
         }
-        ERROR_HELPER(ret,"Errore nella read socket");
+        ERROR_HELPER(ret,"ERROR - chat.c line 89");
 
         if(list[pos].partner[0] <= 0) return; //break cambiato con return, così la chat session esce proprio
 
@@ -99,9 +96,9 @@ void chat_session(int pos, client_info* list) {
 
         if (strcmp(buf, "$exit") == 0) {
             ret = WriteSocket(list[pos].partner[0],list[pos].name,strlen(list[pos].name));
-            ERROR_HELPER(ret, "Error in sending the name");
+            ERROR_HELPER(ret, "ERROR - chat.c line 102");
             ret = WriteSocket(list[pos].partner[0],END_CHAT,strlen(END_CHAT));
-            ERROR_HELPER(ret, "Error in sending END_CHAT");
+            ERROR_HELPER(ret, "ERROR - chat.c line 104");
             return; //anche qui break cambiato con return
         }
 
@@ -114,7 +111,7 @@ void chat_session(int pos, client_info* list) {
         if(errno == EBADF) {
             return;
         }
-        ERROR_HELPER(ret, "Error in sending message_chat");
+        ERROR_HELPER(ret, "ERROR - chat.c line 117");
 
         memset(buf,0,MAX_MESSAGE_LENGTH);
         memset(messaggio_chat,0,MAX_MESSAGE_CHAT);

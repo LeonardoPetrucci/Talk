@@ -8,7 +8,6 @@
 #define QUIT            "$quit"
 #define HELP            "$help"
 #define CONNECTION      "$conn"
-#define SIZE_CONNECTION 5
 
 #define ERROR_HELPER(ret, message) do{                              \
     if (ret < 0){                                                   \

@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -28,21 +25,21 @@ void* _connection_handler(void* args) {
     int sock = chargs->sock;
     list = chargs->l;
 
-    char    buffer[MAX_MESSAGE_LENGTH] = {0}; //buffer for communication
+    char    buffer[MAX_NAME_LENGTH] = {0}; //buffer for communication
     int     bytes;      //read or written files from the buffer
     int     check = 0;  //flag for name setting
 
     int ret = WriteSocket(sock,TALK_INTRO,strlen(TALK_INTRO));
-    ERROR_HELPER(ret, "Error in sending WELCOME");
+    ERROR_HELPER(ret, "ERROR - threads.c line 36");
     ret = WriteSocket(sock,WELCOME,strlen(WELCOME));
-    ERROR_HELPER(ret, "Error in sending WELCOME");
+    ERROR_HELPER(ret, "ERROR - threads.c line 38");
 
     //Timeout connection:client doesn't send anything for 5 minutes.
     struct timeval tv;
     tv.tv_sec = 60*5;
     tv.tv_usec = 0;
     ret = setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,(char*)&tv,sizeof(tv));
-    ERROR_HELPER(ret, "Error in setsockopt");
+    ERROR_HELPER(ret, "ERROR - threads.c line 45");
 
 
     list[pos].name = (char*)calloc(sizeof(char), MAX_NAME_LENGTH);
@@ -52,12 +49,12 @@ void* _connection_handler(void* args) {
 
     while(!check) {
         ret = WriteSocket(sock, SET_NAME, strlen(SET_NAME));
-        ERROR_HELPER(ret, "Error in sending SET_NAME");
+        ERROR_HELPER(ret, "ERROR - threads.c line 55");
 
-        bytes = ReadSocket(sock, buffer, MAX_MESSAGE_LENGTH);
+        bytes = ReadSocket(sock, buffer, MAX_NAME_LENGTH);
         if (errno == EAGAIN){ //if errno = EAGAIN it means that client haven't send anything to server in 5 minutes.
             ret = WriteSocket(sock,"Timeout\n",8);
-            ERROR_HELPER(ret,"Error in sending Timeout");
+            ERROR_HELPER(ret,"ERROR - threads.c line 60");
             close_and_cleanup(sock,pos,list);
         }
         //if buffer è ctrl c invia quit
@@ -99,18 +96,18 @@ void* _connection_handler(void* args) {
     }
     //Connection setup complete. Now this threads becomes the command listener for the specified client
     ret = WriteSocket(sock,MAIN_INTRO,strlen(MAIN_INTRO));
-    ERROR_HELPER(ret, "Error in sending WELCOME");
+    ERROR_HELPER(ret, "ERROR - threads.c line 102");
     ret = WriteSocket(sock, READY, strlen(READY));
-    ERROR_HELPER(ret,"Error in sending READY");
+    ERROR_HELPER(ret,"ERROR - threads.c line 104");
 
     //RACE CONDITION
-    ERROR_HELPER(sem_wait(list[pos].list_sem,0),"Errore nella sem_wait,lista");
+    ERROR_HELPER(sem_wait(list[pos].list_sem,0),"ERROR - threads.c line 107");
 
     if(sendList(sock, list) <= 0) {
         ret = WriteSocket(sock, NOBODY, strlen(NOBODY));
-        ERROR_HELPER(ret,"Error in sending NOBODY");
+        ERROR_HELPER(ret,"ERROR - threads.c line 111");
     }
-    ERROR_HELPER(sem_signal(list[pos].list_sem,0),"Errore nella sem_wait");
+    ERROR_HELPER(sem_signal(list[pos].list_sem,0),"ERROR - threads.c line 113");
     //Fine RACE CONDITION
 
     cmdManagement(sock, pos, list);
@@ -121,12 +118,12 @@ void killClient() {
     for(i = 0; i < MAX_USERS; i++) {
         if (list[i].sock > 0) {
             ret = WriteSocket(list[i].sock, KILL_CLIENT, strlen(KILL_CLIENT));
-            ERROR_HELPER(ret, "Error in sending KILL_CLIENT message");
+            ERROR_HELPER(ret, "ERROR - threads.c line 124");
             close_and_cleanup(list[i].sock, i, list);
         }
     }
     ret = remove_semaphore(list_sem);
-    ERROR_HELPER(ret, "error in remove semaphore");
+    ERROR_HELPER(ret, "ERROR - threads.c line 129");
     close(lsock);
     printf("Server stopped.\n");
     exit(EXIT_SUCCESS);

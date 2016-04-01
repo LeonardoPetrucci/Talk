@@ -4,14 +4,10 @@
 #include <sys/socket.h>
 #include <signal.h>
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <assert.h>
 #include <errno.h>
 #include <sys/wait.h>
 
@@ -48,9 +44,9 @@ int main(char argc, char* argv[]){
     list = (client_info*)calloc(MAX_USERS, sizeof(client_info));
 
     int ret_sem = open_semaphore(20,1);
-    ERROR_HELPER(ret_sem,"Error in opening list_sem");
+    ERROR_HELPER(ret_sem,"ERROR - server.c line 51");
 
-    ERROR_HELPER(set_semaphore(ret_sem,0,1),"Errore nel setting di list_sem");
+    ERROR_HELPER(set_semaphore(ret_sem,0,1),"ERROR - server.c line 53");
     //Initializing connected client list
     int i;
     for(i = 0; i < MAX_USERS; i++) {
@@ -74,7 +70,7 @@ int main(char argc, char* argv[]){
     int status;
     ifconfig = fork();
     if(ifconfig == -1) {
-        printf("Error: cannot fork.\n");
+        printf("ERROR: cannot fork a child process.\n");
         exit(EXIT_FAILURE);
     }
     if(ifconfig == 0) {
@@ -94,7 +90,7 @@ int main(char argc, char* argv[]){
         while (1) {
             csock = accept(lsock, (struct sockaddr *) &caddr, &csize);
             if (csock < 0) {
-                ERROR_HELPER(csock, "Errore nella accept");
+                ERROR_HELPER(csock, "ERROR - server.c line 97");
             }
             //Checking space in the connection list, if not, client disconnected
 
@@ -107,13 +103,13 @@ int main(char argc, char* argv[]){
                     //pthread_t               ch;     //connection handler thread space
                     chargs_t chdata = {list, csock, i}; //connection handler thread data
                     pthread_create(&list[i].chandler, NULL, _connection_handler, &chdata);
+
                     signal(SIGINT, killClient);
                     signal(SIGHUP, killClient);
                     signal(SIGQUIT, killClient);
                     signal(SIGKILL, killClient);
                     signal(SIGTERM, killClient);
                     signal(SIGILL, killClient);
-
                     pthread_detach(list[i].chandler);
                     break;
                 }

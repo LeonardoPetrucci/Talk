@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS =-Wall -O0 -g
-LDFLAGS= -std=c99 -lpthread
+LDFLAGS= -lpthread
 
 
 server: messages.h chat.h commands.h threads.h macros.h semaphore.h structs.h server.c chat.c threads.c semaphore.c
